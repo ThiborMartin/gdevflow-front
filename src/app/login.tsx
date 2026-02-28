@@ -1,11 +1,48 @@
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Logo } from '../components/Logo';
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import { useState } from 'react';
+import { Link, router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { SocialButton } from '../components/SocialButton';
-import { Link } from 'expo-router';
+import { Logo } from '../components/Logo';
+import { api } from '../services/api';
+import { SocialButton } from '@/components/SocialButton';
 
 export default function Login() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    async function handleLogin() {
+        if (!email || !password) {
+        Alert.alert('Erro', 'Preencha email e senha');
+        return;
+        }
+
+        try {
+        setLoading(true);
+
+        const response = await api.post('/auth/login', {
+            email,
+            password,
+        });
+
+        const { token } = response.data;
+
+        await AsyncStorage.setItem('@gdevflow:token', token);
+
+        // redireciona pro app logado
+        Alert.alert('Sucesso', 'Login realizado com sucesso');
+        router.replace('/(drawer)');
+        } catch (error: any) {
+        Alert.alert(
+            'Erro ao logar',
+            error?.response?.data?.message || 'Credenciais inválidas'
+        );
+        } finally {
+        setLoading(false);
+        }
+    }
   return (
     <View style={styles.page}>
       <View style={styles.card}>
@@ -15,10 +52,19 @@ export default function Login() {
           Acesse sua conta para continuar
         </Text>
 
-        <Input placeholder="Email" />
-        <Input placeholder="Senha" secureTextEntry />
+        <Input 
+        placeholder="Email" 
+        value={email} 
+        onChangeText={setEmail} />
+        
+        <Input placeholder="Senha" 
+        secureTextEntry value={password} 
+        onChangeText={setPassword} />
 
-        <Button title="Entrar" />
+        <Button 
+        title={loading ? 'Entrando...' : 'Entrar'}
+        onPress={handleLogin}
+        disabled={loading} />
 
         <Text style={styles.divider}>ou continue com</Text>
 

@@ -1,12 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { Button } from '../../components/Button';
-import { Logo } from '../../components/Logo';
+import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../styles/theme';
 
 export default function Dashboard() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Visão Geral</Text>
 
       <View style={styles.cards}>
         <View style={styles.card}>
@@ -33,12 +30,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     backgroundColor: '#F4F6F8',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: theme.colors.text,
   },
   cards: {
     flexDirection: 'row',
