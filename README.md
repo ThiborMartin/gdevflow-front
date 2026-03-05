@@ -1,56 +1,164 @@
-# Welcome to your Expo app 👋
+# G DEV FLOW - Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+![Expo](https://img.shields.io/badge/Expo-React%20Native-black?logo=expo)
+![React Native](https://img.shields.io/badge/React%20Native-Mobile-blue?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)
+![Status](https://img.shields.io/badge/status-in%20development-yellow)
 
-## Get started
+Frontend da plataforma **GDevFlow**, uma aplicação para **gerenciamento de projetos e tarefas em equipes de desenvolvimento**.
 
-1. Install dependencies
+O sistema permite que usuários criem projetos, organizem tarefas, acompanhem progresso e colaborem em equipes de desenvolvimento.
 
-   ```bash
-   npm install
-   ```
+Este repositório contém a **interface do usuário da aplicação**, construída com **React Native + Expo**.
 
-2. Start the app
+---
+## Sumário
 
-   ```bash
-   npx expo start
-   ```
+- [Visão Geral](#visão-geral)
+- [Preview da Aplicação](#preview-da-aplicação)
+- [Stack Tecnológica](#stack-tecnológica)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Integração com a API](#integração-com-a-api)
+- [Configuração do Ambiente](#configuração-do-ambiente)
+- [Funcionalidades Implementadas](#funcionalidades-implementadas)
+- [Roadmap do Projeto](#roadmap-do-projeto)
+- [Arquitetura](#arquitetura)
+- [Autores](#-autores)
+---
+## Visão Geral
 
-In the output, you'll find options to open the app in a
+O **GDevFlow** é um sistema desenvolvido como projeto acadêmico no curso de **Engenharia de Software**, com o objetivo de apoiar equipes de desenvolvimento no planejamento e acompanhamento de projetos.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+A plataforma permite:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- autenticação de usuários
+- criação e gerenciamento de projetos
+- organização de tarefas
+- acompanhamento do progresso de atividades
 
-## Get a fresh project
+---
+## Preview da Aplicação
 
-When you're ready, run:
+⚠️ **Esta seção será atualizada conforme as telas forem implementadas.**
 
-```bash
-npm run reset-project
-```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Tela de Login
+![Login Screen](docs/images/login.png)
 
-### Other setup steps
+### Tela de Cadastro
+![Register Screen](docs/images/register.png)
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Dashboard
+![Dashboard](docs/images/dashboard.png)
 
-## Learn more
+---
+## Stack Tecnológica
+- **React Native**
+- **Expo**
+- **Expo Router**
+- **TypeScript**
+- **Axios**
+- **AsyncStorage**
+- **React Navigation (Drawer)**
 
-To learn more about developing your project with Expo, look at the following resources:
+---
+## Estrutura do Projeto
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+      src
+      │
+      ├── app/                # Rotas da aplicação (Expo Router)
+      │   ├── login.tsx
+      │   ├── register.tsx
+      │   ├── index.tsx
+      │   └── (drawer)/
+      │
+      ├── components/         # Componentes reutilizáveis
+      │   ├── Button.tsx
+      │   ├── Input.tsx
+      │   └── Logo.tsx
+      │
+      ├── services/           # Comunicação com a API
+      │   └── api.ts
+      │
+      ├── styles/             # Tema e estilos globais
+      │   └── theme.ts
+      │
+      └── assets/             # Recursos estáticos
 
-## Join the community
+---
+## Integração com a API
+Este frontend consome a API do projeto GDevFlow Backend.
 
-Join our community of developers creating universal apps.
+Repositório da API: &nbsp;
+https://github.com/ThiborMartin/gdevflow-api
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+A URL da API é definida através de variável de ambiente.
+
+### Configuração do Ambiente:
+
+1. #### Clonar o repositório
+   git clone https://github.com/ThiborMartin/gdevflow-front <br>
+   cd gdevflow-front
+
+2. #### Instalar dependências<br>
+   npm install<br>
+   ou<br>
+   yarn install
+
+3. #### Configurar variáveis de ambiente
+   Criar um arquivo .env na raiz do projeto:
+   EXPO_PUBLIC_API_URL=http://localhost:8080
+
+4. #### Executar a aplicação
+   npx expo start<br>
+   O Expo abrirá o painel para rodar o projeto em:
+
+   - navegador
+
+   - dispositivo físico
+
+   - emulador Android
+
+   - simulador iOS
+
+---
+## Funcionalidades Implementadas
+- Cadastro de usuários
+- Login integrado com API
+- Persistência de sessão com token
+- Proteção de rotas autenticadas
+- Logout
+- Dashboard inicial
+- Navegação com menu lateral
+
+---
+## Roadmap do Projeto
+**Funcionalidades planejadas para as próximas sprints:**
+
+- gerenciamento de projetos
+
+- gerenciamento de tarefas
+
+- atribuição de tarefas
+
+- acompanhamento de progresso do projeto
+
+---
+## Arquitetura
+A aplicação segue uma estrutura baseada em separação de responsabilidades:
+
+      app/ → rotas e telas da aplicação
+
+      components/ → componentes reutilizáveis
+
+      services/ → comunicação com backend
+
+      styles/ → tema e estilos globais
+
+Essa organização facilita a manutenção, escalabilidade e reutilização de código.
+
+--- 
+## 👥 Autores
+- Thibor Martin &nbsp;&nbsp; [![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?logo=linkedin)](https://www.linkedin.com/in/thibor-martin-ab47081ba/)
+
+- Gabriel  Paulon &nbsp;&nbsp;[![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?logo=linkedin)](https://www.linkedin.com/in/gabriel-paulon-3ba6a9192/)
