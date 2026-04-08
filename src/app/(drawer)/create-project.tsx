@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import { Redirect } from 'expo-router';
 
-export default function CreateProject() {
-  return (
-    <View style={{ padding: 24 }}>
-      <Text>Criar Novo Projeto</Text>
-    </View>
-  );
+export default function CreateProjectRedirect() {
+  return <Redirect href="/(drawer)/project-form" />;
 }

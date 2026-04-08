@@ -1,4 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+
+export const TOKEN_STORAGE_KEY = "@gdevflow:token";
 
 //Pega a URL da API das variáveis de ambiente
 const baseURL = process.env.EXPO_PUBLIC_API_URL;
@@ -13,4 +16,14 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });

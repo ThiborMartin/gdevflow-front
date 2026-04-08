@@ -3,18 +3,19 @@ import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { TOKEN_STORAGE_KEY } from '../../services/api';
 
 export default function DrawerLayout() {
   const [loading, setLoading] = useState(true);
 
   async function handleLogout() {
-    await AsyncStorage.removeItem('@gdevflow:token');
+    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
     router.replace('/login');
   }
 
   useEffect(() => {
     async function checkAuth() {
-      const token = await AsyncStorage.getItem('@gdevflow:token');
+      const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
 
       if (!token) {
         router.replace('/login');
@@ -50,7 +51,41 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen name="projects" options={{ title: 'Projetos' }} />
-      <Drawer.Screen name="tasks" options={{ title: 'Tarefas' }} />
+      <Drawer.Screen
+        name="project-details"
+        options={{
+          title: 'Detalhe do projeto',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="project-form"
+        options={{
+          title: 'Projeto',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="sprint-form"
+        options={{
+          title: 'Sprint',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="create-project"
+        options={{
+          title: 'Criar projeto',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="tasks"
+        options={{
+          title: 'Tarefas',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
     </Drawer>
   );
 }
