@@ -1,14 +1,24 @@
-import { View, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { View, TextInput, StyleSheet, TextInputProps, Text } from 'react-native';
 import { theme } from '../styles/theme';
 
-export function Input(props: TextInputProps) {
+interface InputProps extends TextInputProps {
+  error?: string;
+}
+
+export function Input({ error, ...props }: InputProps) {
   return (
     <View style={styles.container}>
       <TextInput
         {...props}
-        style={[styles.input, props.multiline && styles.multiline, props.style]}
+        style={[
+          styles.input,
+          error && styles.inputError,
+          props.multiline && styles.multiline,
+          props.style,
+        ]}
         placeholderTextColor={theme.colors.muted}
       />
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -24,6 +34,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
+  },
+  inputError: {
+    borderColor: '#D32F2F',
+    backgroundColor: '#FFF8F8',
+  },
+  errorText: {
+    marginTop: 6,
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
   },
   multiline: {
     minHeight: 110,

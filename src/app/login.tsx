@@ -5,66 +5,109 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
-import { api } from '../services/api';
+import { api, TOKEN_STORAGE_KEY } from '../services/api';
 import { SocialButton } from '@/components/SocialButton';
+import { isValidEmail } from '../utils/validation';
+
+interface LoginErrors {
+  email?: string;
+  password?: string;
+  form?: string;
+}
 
 export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const [loading, setLoading] = useState(false);
 
-    async function handleLogin() {
-        if (!email || !password) {
-        Alert.alert('Erro', 'Preencha email e senha');
-        return;
-        }
+  function validateForm() {
+    const nextErrors: LoginErrors = {};
+    const trimmedEmail = email.trim();
 
-        try {
-        setLoading(true);
-
-        const response = await api.post('/auth/login', {
-            email,
-            password,
-        });
-
-        const { token } = response.data;
-
-        await AsyncStorage.setItem('@gdevflow:token', token);
-
-        // redireciona pro app logado
-        Alert.alert('Sucesso', 'Login realizado com sucesso');
-        router.replace('/(drawer)');
-        } catch (error: any) {
-        Alert.alert(
-            'Erro ao logar',
-            error?.response?.data?.message || 'Credenciais inválidas'
-        );
-        } finally {
-        setLoading(false);
-        }
+    if (!trimmedEmail) {
+      nextErrors.email = 'Informe seu email.';
+    } else if (!isValidEmail(trimmedEmail)) {
+      nextErrors.email = 'Informe um email válido.';
     }
+
+    if (!password) {
+      nextErrors.password = 'Informe sua senha.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    setErrors((current) => ({ ...current, email: undefined, form: undefined }));
+  }
+
+  function handlePasswordChange(value: string) {
+    setPassword(value);
+    setErrors((current) => ({ ...current, password: undefined, form: undefined }));
+  }
+
+  async function handleLogin() {
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await api.post('/auth/login', {
+        email: email.trim(),
+        password,
+      });
+
+      const { token } = response.data;
+
+      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+
+      Alert.alert('Sucesso', 'Login realizado com sucesso');
+      router.replace('/(drawer)');
+    } catch {
+      setErrors({
+        form: 'Email ou senha inválidos. Verifique os dados e tente novamente.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <View style={styles.page}>
       <View style={styles.card}>
         <Logo />
 
-        <Text style={styles.subtitle}>
-          Acesse sua conta para continuar
-        </Text>
+        <Text style={styles.subtitle}>Acesse sua conta para continuar</Text>
 
-        <Input 
-        placeholder="Email" 
-        value={email} 
-        onChangeText={setEmail} />
-        
-        <Input placeholder="Senha" 
-        secureTextEntry value={password} 
-        onChangeText={setPassword} />
+        {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
 
-        <Button 
-        title={loading ? 'Entrando...' : 'Entrar'}
-        onPress={handleLogin}
-        disabled={loading} />
+        <Input
+          placeholder="Email"
+          value={email}
+          onChangeText={handleEmailChange}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          error={errors.email}
+        />
+
+        <Input
+          placeholder="Senha"
+          secureTextEntry
+          value={password}
+          onChangeText={handlePasswordChange}
+          error={errors.password}
+        />
+
+        <Button
+          title={loading ? 'Entrando...' : 'Entrar'}
+          onPress={handleLogin}
+          disabled={loading}
+        />
 
         <Text style={styles.divider}>ou continue com</Text>
 
@@ -102,6 +145,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     color: '#666',
+  },
+  formError: {
+    backgroundColor: '#FDECEA',
+    color: '#B71C1C',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   divider: {
     textAlign: 'center',
