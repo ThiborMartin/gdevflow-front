@@ -2,9 +2,19 @@ import { api } from "./api";
 import { Project, ProjectPayload, Sprint, SprintPayload } from "../types/project";
 
 function normalizeSprint(sprint: Sprint): Sprint {
+  const rawSprint = sprint as Sprint & {
+    descricaoSprint?: string;
+    sprintDescription?: string;
+  };
+
   return {
     ...sprint,
-    description: sprint.description || sprint.descricao || "",
+    description:
+      sprint.description ||
+      sprint.descricao ||
+      rawSprint.descricaoSprint ||
+      rawSprint.sprintDescription ||
+      "",
   };
 }
 

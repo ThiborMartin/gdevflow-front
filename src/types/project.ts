@@ -12,6 +12,8 @@ export interface Sprint {
   name: string;
   description?: string;
   descricao?: string;
+  descricaoSprint?: string;
+  sprintDescription?: string;
   startDate: string;
   endDate: string;
   status: string;

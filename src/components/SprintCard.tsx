@@ -12,6 +12,7 @@ interface SprintCardProps {
 
 export function SprintCard({ sprint, progress, onPress }: SprintCardProps) {
   const normalizedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  const description = sprint.description?.trim() || sprint.descricao?.trim();
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
@@ -26,7 +27,7 @@ export function SprintCard({ sprint, progress, onPress }: SprintCardProps) {
       <Text style={styles.period}>{formatPeriod(sprint.startDate, sprint.endDate)}</Text>
 
       <Text style={styles.description} numberOfLines={2}>
-        {sprint.description || 'Sem descrição cadastrada.'}
+        {description || 'Sem descrição cadastrada.'}
       </Text>
 
       <View style={styles.progressHeader}>
