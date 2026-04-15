@@ -23,6 +23,7 @@ import { theme } from '../../styles/theme';
 interface ProjectFormErrors {
   name?: string;
   description?: string;
+  form?: string;
 }
 
 export default function ProjectForm() {
@@ -50,10 +51,11 @@ export default function ProjectForm() {
         setDescription(project.description || '');
         setStatus(project.status);
       } catch (error: any) {
-        Alert.alert(
-          'Erro ao carregar projeto',
-          error?.response?.data?.message || 'Não foi possível carregar o projeto.'
-        );
+        setErrors({
+          form:
+            error?.response?.data?.message ||
+            'Não foi possível carregar o projeto.',
+        });
       } finally {
         setLoading(false);
       }
@@ -79,8 +81,20 @@ export default function ProjectForm() {
       nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
     }
 
+    if (nextErrors.name || nextErrors.description) {
+      nextErrors.form = 'Preencha corretamente os campos obrigatórios.';
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
+  }
+
+  function clearFieldError(field: keyof ProjectFormErrors) {
+    setErrors((current) => ({
+      ...current,
+      [field]: undefined,
+      form: undefined,
+    }));
   }
 
   async function handleSave() {
@@ -106,10 +120,11 @@ export default function ProjectForm() {
         router.replace('/(drawer)/projects');
       }
     } catch (error: any) {
-      Alert.alert(
-        'Erro ao salvar projeto',
-        error?.response?.data?.message || 'Não foi possível salvar o projeto.'
-      );
+      setErrors({
+        form:
+          error?.response?.data?.message ||
+          'Não foi possível salvar o projeto. Verifique os dados e tente novamente.',
+      });
     } finally {
       setSaving(false);
     }
@@ -131,11 +146,11 @@ export default function ProjectForm() {
               Alert.alert('Sucesso', 'Projeto encerrado com sucesso.');
               router.back();
             } catch (error: any) {
-              Alert.alert(
-                'Erro ao encerrar projeto',
-                error?.response?.data?.message ||
-                  'Não foi possível encerrar o projeto.'
-              );
+              setErrors({
+                form:
+                  error?.response?.data?.message ||
+                  'Não foi possível encerrar o projeto.',
+              });
             } finally {
               setSaving(false);
             }
@@ -171,13 +186,15 @@ export default function ProjectForm() {
         </Text>
 
         <View style={styles.card}>
+          {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
+
           <Text style={styles.label}>Nome</Text>
           <Input
             placeholder="Ex: Aplicativo institucional"
             value={name}
             onChangeText={(value) => {
               setName(value);
-              setErrors((current) => ({ ...current, name: undefined }));
+              clearFieldError('name');
             }}
             error={errors.name}
           />
@@ -188,7 +205,7 @@ export default function ProjectForm() {
             value={description}
             onChangeText={(value) => {
               setDescription(value);
-              setErrors((current) => ({ ...current, description: undefined }));
+              clearFieldError('description');
             }}
             multiline
             numberOfLines={5}
@@ -252,6 +269,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+  },
+  formError: {
+    backgroundColor: '#FDECEA',
+    color: '#B71C1C',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   label: {
     marginBottom: 8,
