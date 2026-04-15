@@ -11,6 +11,7 @@ export interface Sprint {
   projectId?: number;
   name: string;
   description?: string;
+  descricao?: string;
   startDate: string;
   endDate: string;
   status: string;

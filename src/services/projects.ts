@@ -1,6 +1,13 @@
 import { api } from "./api";
 import { Project, ProjectPayload, Sprint, SprintPayload } from "../types/project";
 
+function normalizeSprint(sprint: Sprint): Sprint {
+  return {
+    ...sprint,
+    description: sprint.description || sprint.descricao || "",
+  };
+}
+
 export async function getProjects() {
   const response = await api.get<Project[]>("/projects");
   return response.data;
@@ -27,12 +34,33 @@ export async function closeProject(id: number) {
 
 export async function getProjectSprints(projectId: number) {
   const response = await api.get<Sprint[]>(`/projects/${projectId}/sprints`);
-  return response.data;
+  const sprints = response.data.map(normalizeSprint);
+
+  const enrichedSprints = await Promise.all(
+    sprints.map(async (sprint) => {
+      if (sprint.description) {
+        return sprint;
+      }
+
+      try {
+        const details = await getSprintById(sprint.id);
+        return {
+          ...sprint,
+          ...details,
+          description: details.description || sprint.description || "",
+        };
+      } catch {
+        return sprint;
+      }
+    })
+  );
+
+  return enrichedSprints;
 }
 
 export async function getSprintById(id: number) {
   const response = await api.get<Sprint>(`/sprints/${id}`);
-  return response.data;
+  return normalizeSprint(response.data);
 }
 
 export async function createSprint(projectId: number, payload: SprintPayload) {
