@@ -33,6 +33,14 @@ const sprintStatuses = [
 
 type DateField = 'startDate' | 'endDate';
 
+interface SprintFormErrors {
+  name?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
+
 function toApiDate(date: Date) {
   return date.toISOString().split('T')[0];
 }
@@ -56,6 +64,7 @@ export default function SprintForm() {
   const [startDate, setStartDate] = useState(toApiDate(new Date()));
   const [endDate, setEndDate] = useState(toApiDate(new Date()));
   const [status, setStatus] = useState('PLANNED');
+  const [errors, setErrors] = useState<SprintFormErrors>({});
   const [activePicker, setActivePicker] = useState<DateField | null>(null);
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -87,6 +96,47 @@ export default function SprintForm() {
     loadSprint();
   }, [isEditMode, sprintId]);
 
+  function validateForm() {
+    const nextErrors: SprintFormErrors = {};
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName) {
+      nextErrors.name = 'Informe o nome da sprint.';
+    } else if (trimmedName.length < 3) {
+      nextErrors.name = 'O nome deve ter pelo menos 3 caracteres.';
+    }
+
+    if (!trimmedDescription) {
+      nextErrors.description = 'Informe a descrição da sprint.';
+    } else if (trimmedDescription.length < 10) {
+      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
+    }
+
+    if (!startDate) {
+      nextErrors.startDate = 'Selecione a data de início.';
+    }
+
+    if (!endDate) {
+      nextErrors.endDate = 'Selecione a data de fim.';
+    }
+
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      nextErrors.endDate = 'A data de fim deve ser igual ou posterior à data de início.';
+    }
+
+    if (!status) {
+      nextErrors.status = 'Selecione o status da sprint.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function clearFieldError(field: keyof SprintFormErrors) {
+    setErrors((current) => ({ ...current, [field]: undefined }));
+  }
+
   function handleDateChange(field: DateField, event: DateTimePickerEvent, date?: Date) {
     if (Platform.OS !== 'ios') {
       setActivePicker(null);
@@ -100,29 +150,23 @@ export default function SprintForm() {
 
     if (field === 'startDate') {
       setStartDate(formattedDate);
+      setErrors((current) => ({
+        ...current,
+        startDate: undefined,
+        endDate: undefined,
+      }));
     } else {
       setEndDate(formattedDate);
+      setErrors((current) => ({ ...current, endDate: undefined }));
     }
   }
 
   async function handleSave() {
-    if (!name.trim() || !startDate.trim() || !endDate.trim()) {
-      Alert.alert(
-        'Campos obrigatórios',
-        'Preencha nome, data de início e data de fim.'
-      );
+    if (!validateForm()) {
       return;
     }
 
-    if (new Date(startDate) > new Date(endDate)) {
-      Alert.alert(
-        'Período inválido',
-        'A data de início não pode ser maior que a data de fim.'
-      );
-      return;
-    }
-
-    if (!isEditMode && !projectId) {
+    if (!projectId) {
       Alert.alert(
         'Projeto inválido',
         'Não foi possível identificar o projeto da sprint.'
@@ -163,7 +207,12 @@ export default function SprintForm() {
     }
   }
 
-  function renderDateField(label: string, field: DateField, value: string) {
+  function renderDateField(
+    label: string,
+    field: DateField,
+    value: string,
+    error?: string
+  ) {
     const isPickerOpen = activePicker === field;
 
     return (
@@ -171,13 +220,15 @@ export default function SprintForm() {
         <Text style={styles.label}>{label}</Text>
 
         <TouchableOpacity
-          style={styles.dateInput}
+          style={[styles.dateInput, error && styles.dateInputError]}
           activeOpacity={0.85}
           onPress={() => setActivePicker((current) => (current === field ? null : field))}
         >
           <Text style={styles.dateValue}>{formatDate(value)}</Text>
           <Text style={styles.dateAction}>Selecionar</Text>
         </TouchableOpacity>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         {isPickerOpen ? (
           <View style={styles.pickerWrapper}>
@@ -234,20 +285,28 @@ export default function SprintForm() {
           <Input
             placeholder="Ex: Sprint 1"
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              clearFieldError('name');
+            }}
+            error={errors.name}
           />
 
           <Text style={styles.label}>Descrição</Text>
           <Input
             placeholder="Descreva o objetivo da sprint"
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(value) => {
+              setDescription(value);
+              clearFieldError('description');
+            }}
             multiline
             numberOfLines={4}
+            error={errors.description}
           />
 
-          {renderDateField('Data de início', 'startDate', startDate)}
-          {renderDateField('Data de fim', 'endDate', endDate)}
+          {renderDateField('Data de início', 'startDate', startDate, errors.startDate)}
+          {renderDateField('Data de fim', 'endDate', endDate, errors.endDate)}
 
           <Text style={styles.label}>Status</Text>
           <View style={styles.statusGrid}>
@@ -262,7 +321,10 @@ export default function SprintForm() {
                     selected && styles.statusOptionSelected,
                   ]}
                   activeOpacity={0.85}
-                  onPress={() => setStatus(item.value)}
+                  onPress={() => {
+                    setStatus(item.value);
+                    clearFieldError('status');
+                  }}
                 >
                   <Text
                     style={[
@@ -276,6 +338,7 @@ export default function SprintForm() {
               );
             })}
           </View>
+          {errors.status ? <Text style={styles.statusErrorText}>{errors.status}</Text> : null}
 
           <Button
             title={saving ? 'Salvando...' : 'Salvar sprint'}
@@ -344,6 +407,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  dateInputError: {
+    borderColor: '#D32F2F',
+    backgroundColor: '#FFF8F8',
+  },
   dateValue: {
     fontSize: 16,
     color: theme.colors.text,
@@ -352,6 +419,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#007AFF',
+  },
+  errorText: {
+    marginTop: 6,
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
   },
   pickerWrapper: {
     marginTop: 8,
@@ -367,7 +440,7 @@ const styles = StyleSheet.create({
   },
   statusGrid: {
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   statusOption: {
     borderWidth: 1,
@@ -388,5 +461,11 @@ const styles = StyleSheet.create({
   },
   statusOptionTextSelected: {
     color: theme.colors.text,
+  },
+  statusErrorText: {
+    marginBottom: 12,
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

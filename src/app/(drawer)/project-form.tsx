@@ -20,6 +20,11 @@ import {
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
 
+interface ProjectFormErrors {
+  name?: string;
+  description?: string;
+}
+
 export default function ProjectForm() {
   const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = useMemo(() => Number(params.projectId), [params.projectId]);
@@ -28,6 +33,7 @@ export default function ProjectForm() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<string | undefined>();
+  const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
 
@@ -56,9 +62,29 @@ export default function ProjectForm() {
     loadProject();
   }, [isEditMode, projectId]);
 
+  function validateForm() {
+    const nextErrors: ProjectFormErrors = {};
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName) {
+      nextErrors.name = 'Informe o nome do projeto.';
+    } else if (trimmedName.length < 3) {
+      nextErrors.name = 'O nome deve ter pelo menos 3 caracteres.';
+    }
+
+    if (!trimmedDescription) {
+      nextErrors.description = 'Informe a descrição do projeto.';
+    } else if (trimmedDescription.length < 10) {
+      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
   async function handleSave() {
-    if (!name.trim() || !description.trim()) {
-      Alert.alert('Campos obrigatórios', 'Informe nome e descrição do projeto.');
+    if (!validateForm()) {
       return;
     }
 
@@ -149,16 +175,24 @@ export default function ProjectForm() {
           <Input
             placeholder="Ex: Aplicativo institucional"
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              setErrors((current) => ({ ...current, name: undefined }));
+            }}
+            error={errors.name}
           />
 
           <Text style={styles.label}>Descrição</Text>
           <Input
             placeholder="Descreva brevemente o escopo do projeto"
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(value) => {
+              setDescription(value);
+              setErrors((current) => ({ ...current, description: undefined }));
+            }}
             multiline
             numberOfLines={5}
+            error={errors.description}
           />
 
           <Button
