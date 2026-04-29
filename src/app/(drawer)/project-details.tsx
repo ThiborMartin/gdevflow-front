@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
@@ -319,19 +320,6 @@ export default function ProjectDetails() {
 
           {!roleLoading && isFreelancer ? (
             <Button
-              title="Criar sprint"
-              onPress={() =>
-                router.push({
-                  pathname: '/(drawer)/sprint-form',
-                  params: { projectId: project.id },
-                })
-              }
-              disabled={projectClosed}
-            />
-          ) : null}
-
-          {!roleLoading && isFreelancer ? (
-            <Button
               title="Editar projeto"
               variant="secondary"
               onPress={() =>
@@ -358,7 +346,27 @@ export default function ProjectDetails() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Sprints</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Sprints</Text>
+          {!roleLoading && isFreelancer ? (
+            <TouchableOpacity
+              style={[
+                styles.createSprintButton,
+                projectClosed && styles.createSprintButtonDisabled,
+              ]}
+              activeOpacity={0.88}
+              onPress={() =>
+                router.push({
+                  pathname: '/(drawer)/sprint-form',
+                  params: { projectId: project.id },
+                })
+              }
+              disabled={projectClosed}
+            >
+              <Text style={styles.createSprintButtonText}>Criar sprint</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <Text style={styles.sectionSubtitle}>
           Toque em uma sprint para abrir a lista de tarefas correspondente.
         </Text>
@@ -506,10 +514,28 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginBottom: 14,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: theme.colors.text,
+  },
+  createSprintButton: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  createSprintButtonDisabled: {
+    opacity: 0.45,
+  },
+  createSprintButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.primary,
   },
   sectionSubtitle: {
     marginTop: 6,

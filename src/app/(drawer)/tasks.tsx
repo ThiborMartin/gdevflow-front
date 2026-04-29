@@ -23,9 +23,12 @@ import { Task, TaskStatus } from '../../types/task';
 import {
   TASK_FILTERS,
   TaskFilterValue,
+  canTaskBeCompleted,
   filterTasksByStatus,
+  getIncompleteTaskDependencies,
   getTaskCompletionPercentage,
   getTaskSummary,
+  resolveTaskDependencies,
 } from '../../utils/task';
 
 interface SprintHeaderState {
@@ -156,6 +159,24 @@ export default function Tasks() {
   }
 
   async function handleStatusChange(taskId: number, status: TaskStatus) {
+    const currentTask = tasks.find((task) => task.id === taskId);
+
+    if (!currentTask) {
+      return;
+    }
+
+    if (status === 'DONE' && !canTaskBeCompleted(currentTask, tasks)) {
+      const blockedDependencies = getIncompleteTaskDependencies(currentTask, tasks);
+
+      Alert.alert(
+        'Dependencias pendentes',
+        `Conclua primeiro: ${blockedDependencies
+          .map((dependency) => dependency.title)
+          .join(', ')}.`
+      );
+      return;
+    }
+
     try {
       setActionTaskId(taskId);
       const updatedTask = await updateTaskStatus(taskId, status);
@@ -174,6 +195,23 @@ export default function Tasks() {
     } finally {
       setActionTaskId(null);
     }
+  }
+
+  function renderTaskItem(item: Task) {
+    const dependencyTasks = resolveTaskDependencies(item, tasks);
+    const blockedDependencies = getIncompleteTaskDependencies(item, tasks);
+
+    return (
+      <TaskCard
+        task={item}
+        canManage={!roleLoading && isFreelancer}
+        busy={actionTaskId === item.id}
+        dependencyNames={dependencyTasks.map((dependency) => dependency.title)}
+        blockedDependencyNames={blockedDependencies.map((dependency) => dependency.title)}
+        onPress={!roleLoading && isFreelancer ? () => openTaskForm(item.id) : undefined}
+        onStatusChange={(status) => handleStatusChange(item.id, status)}
+      />
+    );
   }
 
   if (loading) {
@@ -293,15 +331,7 @@ export default function Tasks() {
             />
           </View>
         }
-        renderItem={({ item }) => (
-          <TaskCard
-            task={item}
-            canManage={!roleLoading && isFreelancer}
-            busy={actionTaskId === item.id}
-            onPress={!roleLoading && isFreelancer ? () => openTaskForm(item.id) : undefined}
-            onStatusChange={(status) => handleStatusChange(item.id, status)}
-          />
-        )}
+        renderItem={({ item }) => renderTaskItem(item)}
       />
     </View>
   );

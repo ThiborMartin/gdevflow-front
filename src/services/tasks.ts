@@ -1,6 +1,18 @@
 import { api } from './api';
 import { ProjectProgress, SprintProgress } from '../types/progress';
-import { CreateTaskPayload, Task, TaskStatus, UpdateTaskPayload } from '../types/task';
+import {
+  CreateTaskPayload,
+  Task,
+  TaskDependency,
+  TaskStatus,
+  UpdateTaskPayload,
+} from '../types/task';
+import {
+  getTaskMetadata,
+  getTaskMetadataMap,
+  saveTaskMetadata,
+  TaskLocalMetadata,
+} from './task-metadata';
 import { normalizeTaskStatus } from '../utils/task';
 
 function toNumber(value: unknown, fallback = 0) {
@@ -12,14 +24,80 @@ function normalizeText(value: unknown) {
   return typeof value === 'string' ? value : '';
 }
 
+function parseDependencyIds(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const dependencyIds = value
+    .map((dependency) => {
+      if (typeof dependency === 'number' || typeof dependency === 'string') {
+        return Number(dependency);
+      }
+
+      if (dependency && typeof dependency === 'object') {
+        return Number(
+          (dependency as { id?: number | string; taskId?: number | string }).id ??
+            (dependency as { id?: number | string; taskId?: number | string }).taskId
+        );
+      }
+
+      return NaN;
+    })
+    .filter((dependencyId) => Number.isFinite(dependencyId) && dependencyId > 0);
+
+  return Array.from(new Set(dependencyIds));
+}
+
+function parseDependencyTasks(value: unknown): TaskDependency[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.reduce<TaskDependency[]>((dependencies, dependency) => {
+      if (!dependency || typeof dependency !== 'object') {
+        return dependencies;
+      }
+
+      const dependencyId = Number(
+        (dependency as { id?: number | string; taskId?: number | string }).id ??
+          (dependency as { id?: number | string; taskId?: number | string }).taskId
+      );
+
+      if (!Number.isFinite(dependencyId) || dependencyId <= 0) {
+        return dependencies;
+      }
+
+      dependencies.push({
+        id: dependencyId,
+        title: normalizeText(
+          (dependency as { title?: string; name?: string }).title ??
+            (dependency as { title?: string; name?: string }).name
+        ),
+        status: normalizeTaskStatus(
+          (dependency as { status?: string }).status
+        ),
+      });
+
+      return dependencies;
+    }, []);
+}
+
 function sanitizeTaskPayload(payload: CreateTaskPayload | UpdateTaskPayload) {
   const normalizedStatus = normalizeTaskStatus(payload.status);
+  const dependencyTaskIds = parseDependencyIds(payload.dependencyTaskIds || []);
   const requestPayload: Record<string, unknown> = {
     title: payload.title.trim(),
     description: payload.description.trim(),
     status: normalizedStatus,
+    dueDate: payload.dueDate,
+    deadline: payload.dueDate,
+    limitDate: payload.dueDate,
     sprintId: payload.sprintId,
     projectId: payload.projectId,
+    dependencyTaskIds,
+    dependencyIds: dependencyTaskIds,
+    dependsOnTaskIds: dependencyTaskIds,
   };
 
   const responsibleId = payload.responsibleId ?? payload.assigneeId;
@@ -38,11 +116,26 @@ function sanitizeTaskPayload(payload: CreateTaskPayload | UpdateTaskPayload) {
   return requestPayload;
 }
 
-function normalizeTask(task: any): Task {
+function normalizeTask(task: any, metadata?: TaskLocalMetadata): Task {
   const normalizedStatus = normalizeTaskStatus(task?.status);
   const rawProject = task?.project || {};
   const rawSprint = task?.sprint || {};
   const rawResponsible = task?.responsible || task?.assignee || {};
+  const apiDependencyTasks = parseDependencyTasks(
+    task?.dependencies || task?.dependencyTasks || task?.dependsOn || task?.blockedByTasks
+  );
+  const apiDependencyIds = parseDependencyIds(
+    task?.dependencyTaskIds ||
+      task?.dependencyIds ||
+      task?.dependsOnTaskIds ||
+      task?.dependencies ||
+      task?.dependencyTasks ||
+      task?.dependsOn
+  );
+  const effectiveDependencyIds =
+    apiDependencyIds.length > 0 ? apiDependencyIds : metadata?.dependencyTaskIds || [];
+  const effectiveDueDate =
+    task?.dueDate || task?.deadline || task?.limitDate || metadata?.dueDate;
 
   return {
     id: toNumber(task?.id),
@@ -51,6 +144,7 @@ function normalizeTask(task: any): Task {
     status: normalizedStatus,
     createdAt: task?.createdAt || task?.creationDate,
     updatedAt: task?.updatedAt || task?.lastUpdatedAt,
+    dueDate: effectiveDueDate,
     sprintId: toNumber(task?.sprintId ?? rawSprint?.id),
     sprintName: task?.sprintName || rawSprint?.name,
     projectId: toNumber(task?.projectId ?? rawProject?.id),
@@ -70,6 +164,8 @@ function normalizeTask(task: any): Task {
       task?.responsibleName ||
       rawResponsible?.name ||
       rawResponsible?.fullName,
+    dependencyTaskIds: effectiveDependencyIds,
+    dependencyTasks: apiDependencyTasks.length > 0 ? apiDependencyTasks : undefined,
   };
 }
 
@@ -144,8 +240,10 @@ function normalizeProjectProgress(progress: any): ProjectProgress {
 }
 
 async function resolveTaskResponse(taskId: number, responseData: any) {
+  const metadata = await getTaskMetadata(taskId);
+
   if (responseData && typeof responseData === 'object' && Object.keys(responseData).length > 0) {
-    return normalizeTask(responseData);
+    return normalizeTask(responseData, metadata);
   }
 
   return getTaskById(taskId);
@@ -161,30 +259,54 @@ export async function createTask(
     sanitizeTaskPayload(payload)
   );
 
-  return normalizeTask(response.data);
+  const normalizedTask = normalizeTask(response.data, {
+    dueDate: payload.dueDate,
+    dependencyTaskIds: payload.dependencyTaskIds,
+  });
+
+  await saveTaskMetadata(normalizedTask.id, {
+    dueDate: payload.dueDate,
+    dependencyTaskIds: payload.dependencyTaskIds,
+  });
+
+  return normalizedTask;
 }
 
 export async function getSprintTasks(projectId: number, sprintId: number) {
   const response = await api.get<Task[] | { tasks?: Task[]; content?: Task[] }>(
     `/projects/${projectId}/sprints/${sprintId}/tasks`
   );
+  const metadataMap = await getTaskMetadataMap();
 
   const responseData = response.data;
   const tasks = Array.isArray(responseData)
     ? responseData
     : responseData.tasks || responseData.content || [];
 
-  return tasks.map(normalizeTask);
+  return tasks.map((task) =>
+    normalizeTask(task, metadataMap[String(toNumber((task as { id?: number }).id))])
+  );
 }
 
 export async function getTaskById(taskId: number) {
   const response = await api.get<Task>(`/tasks/${taskId}`);
-  return normalizeTask(response.data);
+  const metadata = await getTaskMetadata(taskId);
+  return normalizeTask(response.data, metadata);
 }
 
 export async function updateTask(taskId: number, payload: UpdateTaskPayload) {
   const response = await api.put<Task>(`/tasks/${taskId}`, sanitizeTaskPayload(payload));
-  return normalizeTask(response.data);
+  const normalizedTask = normalizeTask(response.data, {
+    dueDate: payload.dueDate,
+    dependencyTaskIds: payload.dependencyTaskIds,
+  });
+
+  await saveTaskMetadata(taskId, {
+    dueDate: payload.dueDate,
+    dependencyTaskIds: payload.dependencyTaskIds,
+  });
+
+  return normalizedTask;
 }
 
 export async function updateTaskStatus(taskId: number, status: TaskStatus | string) {

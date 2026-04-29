@@ -1,3 +1,6 @@
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -13,30 +16,44 @@ import {
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { ScreenState } from '../../components/ScreenState';
+import { StatusBadge } from '../../components/StatusBadge';
 import { useUserRole } from '../../hooks/useUserRole';
 import {
   completeTask,
   createTask,
   getTaskById,
+  getSprintTasks,
   updateTask,
   updateTaskStatus,
 } from '../../services/tasks';
 import { theme } from '../../styles/theme';
-import { CreateTaskPayload, UpdateTaskPayload } from '../../types/task';
+import { CreateTaskPayload, Task, UpdateTaskPayload } from '../../types/task';
+import {
+  TASK_STATUS_OPTIONS,
+  getIncompleteTaskDependencies,
+  normalizeTaskStatus,
+  resolveTaskDependencies,
+} from '../../utils/task';
+import { formatDate } from '../../utils/date';
 
-const taskStatuses = [
-  { label: 'A fazer', value: 'TODO' },
-  { label: 'Em andamento', value: 'IN_PROGRESS' },
-  { label: 'Concluida', value: 'DONE' },
-  { label: 'Bloqueada', value: 'BLOCKED' },
-];
+type DateField = 'dueDate';
 
 interface TaskFormErrors {
   title?: string;
   description?: string;
+  dueDate?: string;
   status?: string;
   project?: string;
   sprint?: string;
+}
+
+function toApiDate(date: Date) {
+  return date.toISOString().split('T')[0];
+}
+
+function getPickerValue(value: string) {
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 }
 
 export default function TaskForm() {
@@ -54,6 +71,7 @@ export default function TaskForm() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('TODO');
+  const [dueDate, setDueDate] = useState(toApiDate(new Date()));
   const [responsibleName, setResponsibleName] = useState('');
   const [projectId, setProjectId] = useState(
     Number.isFinite(initialProjectId) ? initialProjectId : 0
@@ -64,34 +82,99 @@ export default function TaskForm() {
   const [projectName, setProjectName] = useState(params.projectName || '');
   const [sprintName, setSprintName] = useState(params.sprintName || '');
   const [responsibleId, setResponsibleId] = useState<number | null>(null);
+  const [selectedDependencyIds, setSelectedDependencyIds] = useState<number[]>([]);
+  const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [formError, setFormError] = useState('');
-  const [loading, setLoading] = useState(isEditMode);
+  const [activePicker, setActivePicker] = useState<DateField | null>(null);
+  const [loading, setLoading] = useState(isEditMode || !initialProjectId || !initialSprintId);
   const [saving, setSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const { isClient, loading: roleLoading } = useUserRole();
 
-  useEffect(() => {
-    async function loadTask() {
-      if (!isEditMode) {
-        return;
-      }
+  const dependencyCandidates = useMemo(
+    () => availableTasks.filter((task) => task.id !== taskId),
+    [availableTasks, taskId]
+  );
+  const selectedDependencyTasks = useMemo(
+    () => dependencyCandidates.filter((task) => selectedDependencyIds.includes(task.id)),
+    [dependencyCandidates, selectedDependencyIds]
+  );
+  const selectedTaskPreview = useMemo<Task>(
+    () => ({
+      id: taskId || -1,
+      title,
+      description,
+      status,
+      dueDate,
+      sprintId,
+      sprintName,
+      projectId,
+      projectName,
+      responsibleId,
+      responsibleName,
+      assigneeId: responsibleId,
+      assigneeName: responsibleName,
+      dependencyTaskIds: selectedDependencyIds,
+    }),
+    [
+      description,
+      dueDate,
+      projectId,
+      projectName,
+      responsibleId,
+      responsibleName,
+      selectedDependencyIds,
+      sprintId,
+      sprintName,
+      status,
+      taskId,
+      title,
+    ]
+  );
+  const incompleteDependencies = useMemo(
+    () => getIncompleteTaskDependencies(selectedTaskPreview, dependencyCandidates),
+    [dependencyCandidates, selectedTaskPreview]
+  );
+  const allDependenciesResolved = incompleteDependencies.length === 0;
 
+  useEffect(() => {
+    async function loadFormData() {
       try {
         setLoading(true);
         setFormError('');
-        const task = await getTaskById(taskId);
 
-        setTitle(task.title || '');
-        setDescription(task.description || '');
-        setStatus(task.status || 'TODO');
-        setResponsibleId(task.responsibleId || task.assigneeId || null);
-        setResponsibleName(task.responsibleName || task.assigneeName || '');
-        setProjectId(task.projectId || initialProjectId || 0);
-        setSprintId(task.sprintId || initialSprintId || 0);
-        setProjectName(task.projectName || params.projectName || '');
-        setSprintName(task.sprintName || params.sprintName || '');
+        let nextProjectId = initialProjectId || 0;
+        let nextSprintId = initialSprintId || 0;
+        let currentTask: Task | null = null;
+
+        if (isEditMode) {
+          currentTask = await getTaskById(taskId);
+          nextProjectId = currentTask.projectId || nextProjectId;
+          nextSprintId = currentTask.sprintId || nextSprintId;
+        }
+
+        const sprintTasks =
+          nextProjectId && nextSprintId
+            ? await getSprintTasks(nextProjectId, nextSprintId)
+            : [];
+
+        setAvailableTasks(sprintTasks);
+        setProjectId(nextProjectId);
+        setSprintId(nextSprintId);
+
+        if (currentTask) {
+          setTitle(currentTask.title || '');
+          setDescription(currentTask.description || '');
+          setStatus(currentTask.status || 'TODO');
+          setDueDate(currentTask.dueDate || toApiDate(new Date()));
+          setResponsibleId(currentTask.responsibleId || currentTask.assigneeId || null);
+          setResponsibleName(currentTask.responsibleName || currentTask.assigneeName || '');
+          setProjectName(currentTask.projectName || params.projectName || '');
+          setSprintName(currentTask.sprintName || params.sprintName || '');
+          setSelectedDependencyIds(currentTask.dependencyTaskIds || []);
+        }
       } catch (loadError: any) {
         setFormError(
           loadError?.response?.data?.message ||
@@ -102,7 +185,7 @@ export default function TaskForm() {
       }
     }
 
-    loadTask();
+    loadFormData();
   }, [
     initialProjectId,
     initialSprintId,
@@ -137,6 +220,10 @@ export default function TaskForm() {
       nextErrors.description = 'A descricao deve ter pelo menos 8 caracteres.';
     }
 
+    if (!dueDate) {
+      nextErrors.dueDate = 'Selecione a data limite da tarefa.';
+    }
+
     if (!status) {
       nextErrors.status = 'Selecione o status da tarefa.';
     }
@@ -149,6 +236,10 @@ export default function TaskForm() {
       nextErrors.sprint = 'Sprint nao identificada.';
     }
 
+    if (normalizeTaskStatus(status) === 'DONE' && !allDependenciesResolved) {
+      nextErrors.status = 'Conclua antes as tarefas dependentes.';
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -158,12 +249,14 @@ export default function TaskForm() {
       title: title.trim(),
       description: description.trim(),
       status,
+      dueDate,
       projectId,
       sprintId,
       responsibleId,
       responsibleName: responsibleName.trim() || undefined,
       assigneeId: responsibleId,
       assigneeName: responsibleName.trim() || undefined,
+      dependencyTaskIds: selectedDependencyIds,
     };
   }
 
@@ -179,8 +272,55 @@ export default function TaskForm() {
     });
   }
 
+  function toggleDependency(dependencyId: number) {
+    setSelectedDependencyIds((currentIds) => {
+      if (currentIds.includes(dependencyId)) {
+        return currentIds.filter((id) => id !== dependencyId);
+      }
+
+      return [...currentIds, dependencyId];
+    });
+    setFormError('');
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      status: undefined,
+    }));
+  }
+
+  function handleDateChange(event: DateTimePickerEvent, date?: Date) {
+    if (Platform.OS !== 'ios') {
+      setActivePicker(null);
+    }
+
+    if (event.type === 'dismissed' || !date) {
+      return;
+    }
+
+    setDueDate(toApiDate(date));
+    clearFieldError('dueDate');
+  }
+
+  function ensureCompletionAllowed() {
+    if (allDependenciesResolved) {
+      return true;
+    }
+
+    Alert.alert(
+      'Dependencias pendentes',
+      `Conclua primeiro: ${incompleteDependencies
+        .map((dependency) => dependency.title)
+        .join(', ')}.`
+    );
+
+    return false;
+  }
+
   async function handleSave() {
     if (!validateForm()) {
+      return;
+    }
+
+    if (normalizeTaskStatus(status) === 'DONE' && !ensureCompletionAllowed()) {
       return;
     }
 
@@ -212,6 +352,10 @@ export default function TaskForm() {
       return;
     }
 
+    if (normalizeTaskStatus(status) === 'DONE' && !ensureCompletionAllowed()) {
+      return;
+    }
+
     try {
       setStatusSaving(true);
       setFormError('');
@@ -230,6 +374,10 @@ export default function TaskForm() {
 
   async function handleComplete() {
     if (!isEditMode) {
+      return;
+    }
+
+    if (!ensureCompletionAllowed()) {
       return;
     }
 
@@ -301,7 +449,7 @@ export default function TaskForm() {
           {isEditMode ? 'Editar tarefa' : 'Nova tarefa'}
         </Text>
         <Text style={styles.subtitle}>
-          Organize o backlog da sprint com titulo, descricao e status.
+          Organize o backlog com data limite, dependencias e status da entrega.
         </Text>
 
         <View style={styles.card}>
@@ -343,6 +491,43 @@ export default function TaskForm() {
             error={errors.description}
           />
 
+          <View style={styles.dateSection}>
+            <Text style={styles.label}>Data limite</Text>
+            <TouchableOpacity
+              style={[styles.dateInput, errors.dueDate && styles.dateInputError]}
+              activeOpacity={0.85}
+              onPress={() =>
+                setActivePicker((currentPicker) =>
+                  currentPicker === 'dueDate' ? null : 'dueDate'
+                )
+              }
+            >
+              <Text style={styles.dateValue}>{formatDate(dueDate)}</Text>
+              <Text style={styles.dateAction}>Selecionar</Text>
+            </TouchableOpacity>
+            {errors.dueDate ? <Text style={styles.errorText}>{errors.dueDate}</Text> : null}
+
+            {activePicker === 'dueDate' ? (
+              <View style={styles.pickerWrapper}>
+                <DateTimePicker
+                  value={getPickerValue(dueDate)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                  onChange={handleDateChange}
+                />
+
+                {Platform.OS === 'ios' ? (
+                  <TouchableOpacity
+                    style={styles.closePickerButton}
+                    onPress={() => setActivePicker(null)}
+                  >
+                    <Text style={styles.closePickerText}>Fechar calendario</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
           <Text style={styles.label}>Responsavel (opcional)</Text>
           <Input
             placeholder="Ex: Gabriel"
@@ -353,16 +538,92 @@ export default function TaskForm() {
             }}
           />
 
+          <Text style={styles.label}>Dependencias da tarefa</Text>
+          <Text style={styles.helperText}>
+            Esta tarefa so podera ser concluida depois que todas as dependencias estiverem concluidas.
+          </Text>
+
+          {dependencyCandidates.length === 0 ? (
+            <View style={styles.dependenciesEmptyState}>
+              <Text style={styles.dependenciesEmptyText}>
+                Nenhuma outra tarefa disponivel nesta sprint para vincular como dependencia.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.dependenciesList}>
+              {dependencyCandidates.map((dependencyTask) => {
+                const selected = selectedDependencyIds.includes(dependencyTask.id);
+
+                return (
+                  <TouchableOpacity
+                    key={dependencyTask.id}
+                    style={[
+                      styles.dependencyOption,
+                      selected && styles.dependencyOptionSelected,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => toggleDependency(dependencyTask.id)}
+                  >
+                    <View style={styles.dependencyHeader}>
+                      <View style={styles.dependencyTextBlock}>
+                        <Text style={styles.dependencyTitle}>{dependencyTask.title}</Text>
+                        {dependencyTask.dueDate ? (
+                          <Text style={styles.dependencyMeta}>
+                            Limite: {formatDate(dependencyTask.dueDate)}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      <StatusBadge status={dependencyTask.status} />
+                    </View>
+
+                    <Text style={styles.dependencyToggleText}>
+                      {selected ? 'Selecionada como dependencia' : 'Toque para marcar como dependencia'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {selectedDependencyTasks.length > 0 ? (
+            <View style={styles.selectedDependenciesCard}>
+              <Text style={styles.selectedDependenciesTitle}>Dependencias selecionadas</Text>
+              {resolveTaskDependencies(selectedTaskPreview, dependencyCandidates).map(
+                (dependency) => (
+                  <Text key={dependency.id} style={styles.selectedDependencyItem}>
+                    - {dependency.title}
+                  </Text>
+                )
+              )}
+            </View>
+          ) : null}
+
+          {!allDependenciesResolved ? (
+            <Text style={styles.blockedNotice}>
+              Conclusao bloqueada ate finalizar: {incompleteDependencies
+                .map((dependency) => dependency.title)
+                .join(', ')}.
+            </Text>
+          ) : null}
+
           <Text style={styles.label}>Status</Text>
           <View style={styles.statusGrid}>
-            {taskStatuses.map((item) => {
+            {TASK_STATUS_OPTIONS.map((item) => {
               const selected = item.value === status;
+              const blockedByDependency =
+                item.value === 'DONE' && !allDependenciesResolved && !selected;
 
               return (
                 <TouchableOpacity
                   key={item.value}
-                  style={[styles.statusOption, selected && styles.statusOptionSelected]}
+                  style={[
+                    styles.statusOption,
+                    selected && styles.statusOptionSelected,
+                    blockedByDependency && styles.statusOptionBlocked,
+                  ]}
                   activeOpacity={0.85}
+                  disabled={blockedByDependency}
                   onPress={() => {
                     setStatus(item.value);
                     clearFieldError('status');
@@ -372,6 +633,7 @@ export default function TaskForm() {
                     style={[
                       styles.statusOptionText,
                       selected && styles.statusOptionTextSelected,
+                      blockedByDependency && styles.statusOptionTextBlocked,
                     ]}
                   >
                     {item.label}
@@ -397,7 +659,7 @@ export default function TaskForm() {
             />
           ) : null}
 
-          {isEditMode && status !== 'DONE' ? (
+          {isEditMode && normalizeTaskStatus(status) !== 'DONE' ? (
             <Button
               title={completing ? 'Concluindo...' : 'Marcar como concluida'}
               variant="secondary"
@@ -470,6 +732,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.text,
   },
+  helperText: {
+    marginTop: -2,
+    marginBottom: 12,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#64748B',
+  },
   staticField: {
     borderWidth: 1,
     borderColor: theme.colors.inputBorder,
@@ -482,6 +751,122 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.text,
     fontWeight: '600',
+  },
+  dateSection: {
+    marginBottom: 16,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: 8,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateInputError: {
+    borderColor: '#D32F2F',
+    backgroundColor: '#FFF8F8',
+  },
+  dateValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  dateAction: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  pickerWrapper: {
+    marginTop: 8,
+  },
+  closePickerButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+  },
+  closePickerText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dependenciesEmptyState: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#F8FAFC',
+    marginBottom: 16,
+  },
+  dependenciesEmptyText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#64748B',
+  },
+  dependenciesList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  dependencyOption: {
+    borderWidth: 1,
+    borderColor: '#D9E2EC',
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#FFF',
+  },
+  dependencyOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: '#FFFBEA',
+  },
+  dependencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dependencyTextBlock: {
+    flex: 1,
+  },
+  dependencyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  dependencyMeta: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dependencyToggleText: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  selectedDependenciesCard: {
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  selectedDependenciesTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  selectedDependencyItem: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#475569',
+  },
+  blockedNotice: {
+    marginBottom: 16,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#B71C1C',
+    fontWeight: '700',
   },
   statusGrid: {
     gap: 10,
@@ -499,6 +884,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF9D9',
     borderColor: theme.colors.primary,
   },
+  statusOptionBlocked: {
+    backgroundColor: '#FFF5F5',
+    borderColor: '#F1B5B5',
+  },
   statusOptionText: {
     fontSize: 14,
     color: '#4F5D6B',
@@ -506,6 +895,9 @@ const styles = StyleSheet.create({
   },
   statusOptionTextSelected: {
     color: theme.colors.text,
+  },
+  statusOptionTextBlocked: {
+    color: '#B45309',
   },
   errorText: {
     marginTop: -10,

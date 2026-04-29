@@ -1,4 +1,4 @@
-import { Task, TaskStatus } from '../types/task';
+import { Task, TaskDependency, TaskStatus } from '../types/task';
 
 export type TaskFilterValue = 'ALL' | TaskStatus;
 export type TaskStatusOption = { label: string; value: TaskStatus };
@@ -89,4 +89,46 @@ export function getTaskCompletionPercentage(tasks: Pick<Task, 'status'>[]) {
 
   const summary = getTaskSummary(tasks);
   return Math.round((summary.completed / summary.total) * 100);
+}
+
+export function resolveTaskDependencies(task: Task, allTasks: Task[]): TaskDependency[] {
+  const tasksById = new Map(allTasks.map((item) => [item.id, item]));
+  const dependencyIds = task.dependencyTaskIds || [];
+  const dependencyTasks = task.dependencyTasks || [];
+
+  return dependencyIds.reduce<TaskDependency[]>((dependencies, dependencyId) => {
+      const fullTask = tasksById.get(dependencyId);
+
+      if (fullTask) {
+        dependencies.push({
+          id: fullTask.id,
+          title: fullTask.title,
+          status: normalizeTaskStatus(fullTask.status),
+        });
+        return dependencies;
+      }
+
+      const fallbackTask = dependencyTasks.find((dependency) => dependency.id === dependencyId);
+
+      if (fallbackTask) {
+        dependencies.push({
+          id: fallbackTask.id,
+          title: fallbackTask.title,
+          status: normalizeTaskStatus(fallbackTask.status),
+        });
+        return dependencies;
+      }
+
+      return dependencies;
+    }, []);
+}
+
+export function getIncompleteTaskDependencies(task: Task, allTasks: Task[]) {
+  return resolveTaskDependencies(task, allTasks).filter(
+    (dependency) => normalizeTaskStatus(dependency.status) !== 'DONE'
+  );
+}
+
+export function canTaskBeCompleted(task: Task, allTasks: Task[]) {
+  return getIncompleteTaskDependencies(task, allTasks).length === 0;
 }
