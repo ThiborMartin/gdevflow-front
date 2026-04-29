@@ -34,7 +34,7 @@ import {
   normalizeTaskStatus,
   resolveTaskDependencies,
 } from '../../utils/task';
-import { formatDate } from '../../utils/date';
+import { formatDate, getDatePickerValue, toApiDate } from '../../utils/date';
 
 type DateField = 'dueDate';
 
@@ -45,15 +45,6 @@ interface TaskFormErrors {
   status?: string;
   project?: string;
   sprint?: string;
-}
-
-function toApiDate(date: Date) {
-  return date.toISOString().split('T')[0];
-}
-
-function getPickerValue(value: string) {
-  const parsedDate = new Date(value);
-  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 }
 
 export default function TaskForm() {
@@ -510,7 +501,7 @@ export default function TaskForm() {
             {activePicker === 'dueDate' ? (
               <View style={styles.pickerWrapper}>
                 <DateTimePicker
-                  value={getPickerValue(dueDate)}
+                  value={getDatePickerValue(dueDate)}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
                   onChange={handleDateChange}

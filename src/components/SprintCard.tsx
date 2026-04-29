@@ -9,6 +9,8 @@ interface SprintCardProps {
   progress: number;
   onPress?: () => void;
   actionLabel?: string;
+  secondaryActionLabel?: string;
+  onSecondaryActionPress?: () => void;
   footerPrimaryText?: string;
   footerSecondaryText?: string;
 }
@@ -18,6 +20,8 @@ export function SprintCard({
   progress,
   onPress,
   actionLabel,
+  secondaryActionLabel,
+  onSecondaryActionPress,
   footerPrimaryText,
   footerSecondaryText,
 }: SprintCardProps) {
@@ -33,6 +37,10 @@ export function SprintCard({
     (typeof sprint.completedTasks === 'number'
       ? `${sprint.completedTasks} concluidas`
       : 'Acompanhamento em tempo real');
+  const hasPrimaryAction = Boolean(actionLabel && onPress);
+  const hasSecondaryAction = Boolean(
+    secondaryActionLabel && onSecondaryActionPress
+  );
 
   return (
     <View style={styles.card}>
@@ -64,14 +72,36 @@ export function SprintCard({
         <Text style={styles.footerText}>{rightFooterText}</Text>
       </View>
 
-      {actionLabel && onPress ? (
-        <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.88}
-          onPress={onPress}
-        >
-          <Text style={styles.actionButtonText}>{actionLabel}</Text>
-        </TouchableOpacity>
+      {hasPrimaryAction || hasSecondaryAction ? (
+        <View style={styles.actionsRow}>
+          {hasSecondaryAction ? (
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.secondaryActionButton,
+                !hasPrimaryAction && styles.singleActionButton,
+              ]}
+              activeOpacity={0.88}
+              onPress={onSecondaryActionPress}
+            >
+              <Text style={styles.actionButtonText}>{secondaryActionLabel}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {hasPrimaryAction ? (
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.primaryActionButton,
+                !hasSecondaryAction && styles.singleActionButton,
+              ]}
+              activeOpacity={0.88}
+              onPress={onPress}
+            >
+              <Text style={styles.actionButtonText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -161,13 +191,28 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontWeight: '600',
   },
-  actionButton: {
+  actionsRow: {
     marginTop: 16,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D8E1EB',
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  singleActionButton: {
+    flex: 0,
+    width: '100%',
+  },
+  primaryActionButton: {
+    borderColor: '#F6C72F',
+    backgroundColor: '#FFE082',
+  },
+  secondaryActionButton: {
+    borderColor: '#D8E1EB',
     backgroundColor: '#F8FAFC',
   },
   actionButtonText: {

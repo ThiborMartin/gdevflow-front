@@ -199,6 +199,16 @@ export default function ProjectDetails() {
     });
   }
 
+  function openSprintEditor(sprint: Sprint) {
+    router.push({
+      pathname: '/(drawer)/sprint-form',
+      params: {
+        projectId: String(project?.id || projectId),
+        sprintId: String(sprint.id),
+      },
+    });
+  }
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -389,6 +399,7 @@ export default function ProjectDetails() {
             sprint={item}
             progress={item.progressPercentage ?? getSprintFallbackProgress(item.status)}
             actionLabel="Ver tarefas"
+            secondaryActionLabel={!roleLoading && isFreelancer ? 'Editar sprint' : undefined}
             footerPrimaryText={
               typeof item.totalTasks === 'number'
                 ? `${item.totalTasks} tarefas`
@@ -400,6 +411,7 @@ export default function ProjectDetails() {
                 : 'Progresso via status da sprint'
             }
             onPress={() => openSprintTasks(item)}
+            onSecondaryActionPress={() => openSprintEditor(item)}
           />
         )}
       />

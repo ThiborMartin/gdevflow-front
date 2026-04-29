@@ -22,14 +22,17 @@ import {
   updateSprint,
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
-import { formatDate } from '../../utils/date';
+import { formatDate, getDatePickerValue, toApiDate } from '../../utils/date';
 
 const sprintStatuses = [
   { label: 'Planejada', value: 'PLANNED' },
   { label: 'Em andamento', value: 'IN_PROGRESS' },
-  { label: 'Concluída', value: 'DONE' },
+  { label: 'Concluida', value: 'DONE' },
   { label: 'Cancelada', value: 'CANCELLED' },
 ];
+
+const duplicateSprintNameKey = 'ja existe uma sprint com esse nome neste projeto';
+const invalidSprintPeriodKey = 'data final da sprint nao pode ser anterior a data inicial';
 
 type DateField = 'startDate' | 'endDate';
 
@@ -41,13 +44,36 @@ interface SprintFormErrors {
   status?: string;
 }
 
-function toApiDate(date: Date) {
-  return date.toISOString().split('T')[0];
+function normalizeErrorMessage(message?: string) {
+  return (message || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
-function getPickerValue(value: string) {
-  const parsedDate = new Date(value);
-  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+function getSprintApiErrorMessage(error: any, isEditMode: boolean) {
+  const apiMessage = error?.response?.data?.message || error?.message || '';
+  const normalizedMessage = normalizeErrorMessage(apiMessage);
+
+  if (normalizedMessage.includes(duplicateSprintNameKey)) {
+    return 'Ja existe uma sprint com esse nome neste projeto. Escolha outro nome para continuar.';
+  }
+
+  if (normalizedMessage.includes(invalidSprintPeriodKey)) {
+    return 'A data final precisa ser igual ou posterior a data inicial.';
+  }
+
+  return (
+    apiMessage ||
+    (isEditMode
+      ? 'Nao foi possivel atualizar a sprint.'
+      : 'Nao foi possivel salvar a sprint.')
+  );
+}
+
+function isDuplicateSprintNameError(error: any) {
+  const apiMessage = error?.response?.data?.message || error?.message || '';
+  return normalizeErrorMessage(apiMessage).includes(duplicateSprintNameKey);
 }
 
 export default function SprintForm() {
@@ -86,7 +112,7 @@ export default function SprintForm() {
       } catch (error: any) {
         Alert.alert(
           'Erro ao carregar sprint',
-          error?.response?.data?.message || 'Não foi possível carregar a sprint.'
+          error?.response?.data?.message || 'Nao foi possivel carregar a sprint.'
         );
       } finally {
         setLoading(false);
@@ -108,21 +134,21 @@ export default function SprintForm() {
     }
 
     if (!trimmedDescription) {
-      nextErrors.description = 'Informe a descrição da sprint.';
+      nextErrors.description = 'Informe a descricao da sprint.';
     } else if (trimmedDescription.length < 10) {
-      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
+      nextErrors.description = 'A descricao deve ter pelo menos 10 caracteres.';
     }
 
     if (!startDate) {
-      nextErrors.startDate = 'Selecione a data de início.';
+      nextErrors.startDate = 'Selecione a data de inicio.';
     }
 
     if (!endDate) {
       nextErrors.endDate = 'Selecione a data de fim.';
     }
 
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      nextErrors.endDate = 'A data de fim deve ser igual ou posterior à data de início.';
+    if (startDate && endDate && startDate > endDate) {
+      nextErrors.endDate = 'A data de fim deve ser igual ou posterior a data de inicio.';
     }
 
     if (!status) {
@@ -155,10 +181,11 @@ export default function SprintForm() {
         startDate: undefined,
         endDate: undefined,
       }));
-    } else {
-      setEndDate(formattedDate);
-      setErrors((current) => ({ ...current, endDate: undefined }));
+      return;
     }
+
+    setEndDate(formattedDate);
+    setErrors((current) => ({ ...current, endDate: undefined }));
   }
 
   async function handleSave() {
@@ -168,8 +195,8 @@ export default function SprintForm() {
 
     if (!projectId) {
       Alert.alert(
-        'Projeto inválido',
-        'Não foi possível identificar o projeto da sprint.'
+        'Projeto invalido',
+        'Nao foi possivel identificar o projeto da sprint.'
       );
       return;
     }
@@ -199,8 +226,10 @@ export default function SprintForm() {
       });
     } catch (error: any) {
       Alert.alert(
-        'Erro ao salvar sprint',
-        error?.response?.data?.message || 'Não foi possível salvar a sprint.'
+        isDuplicateSprintNameError(error)
+          ? 'Nome da sprint em uso'
+          : 'Erro ao salvar sprint',
+        getSprintApiErrorMessage(error, isEditMode)
       );
     } finally {
       setSaving(false);
@@ -233,7 +262,7 @@ export default function SprintForm() {
         {isPickerOpen ? (
           <View style={styles.pickerWrapper}>
             <DateTimePicker
-              value={getPickerValue(value)}
+              value={getDatePickerValue(value)}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
               onChange={(event, selectedDate) =>
@@ -246,7 +275,7 @@ export default function SprintForm() {
                 style={styles.closePickerButton}
                 onPress={() => setActivePicker(null)}
               >
-                <Text style={styles.closePickerText}>Fechar calendário</Text>
+                <Text style={styles.closePickerText}>Fechar calendario</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -277,7 +306,7 @@ export default function SprintForm() {
           {isEditMode ? 'Editar sprint' : 'Nova sprint'}
         </Text>
         <Text style={styles.subtitle}>
-          Cadastre o período, descrição e status da sprint dentro do projeto.
+          Cadastre o periodo, descricao e status da sprint dentro do projeto.
         </Text>
 
         <View style={styles.card}>
@@ -292,7 +321,7 @@ export default function SprintForm() {
             error={errors.name}
           />
 
-          <Text style={styles.label}>Descrição</Text>
+          <Text style={styles.label}>Descricao</Text>
           <Input
             placeholder="Descreva o objetivo da sprint"
             value={description}
@@ -305,7 +334,7 @@ export default function SprintForm() {
             error={errors.description}
           />
 
-          {renderDateField('Data de início', 'startDate', startDate, errors.startDate)}
+          {renderDateField('Data de inicio', 'startDate', startDate, errors.startDate)}
           {renderDateField('Data de fim', 'endDate', endDate, errors.endDate)}
 
           <Text style={styles.label}>Status</Text>
