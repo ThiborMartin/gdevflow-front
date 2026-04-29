@@ -47,6 +47,92 @@ interface TaskFormErrors {
   sprint?: string;
 }
 
+const taskDueDateBeforeCreationKey =
+  'data limite da tarefa nao pode ser anterior a data de criacao';
+const taskDueDateAfterSprintEndKey =
+  'data limite da tarefa nao pode ser posterior a data final da sprint';
+const taskDependencyCompletionKey =
+  'nao e possivel concluir a tarefa antes de finalizar todas as dependencias';
+
+function normalizeErrorMessage(message?: string) {
+  return (message || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function mapTaskApiMessage(message?: string) {
+  const normalizedMessage = normalizeErrorMessage(message);
+
+  if (normalizedMessage.includes(taskDueDateBeforeCreationKey)) {
+    return {
+      field: 'dueDate' as const,
+      message: 'A data limite nao pode ser anterior a data de criacao da tarefa.',
+    };
+  }
+
+  if (normalizedMessage.includes(taskDueDateAfterSprintEndKey)) {
+    return {
+      field: 'dueDate' as const,
+      message: 'A data limite nao pode ser posterior a data final da sprint.',
+    };
+  }
+
+  if (normalizedMessage.includes(taskDependencyCompletionKey)) {
+    return {
+      field: 'status' as const,
+      message: 'Conclua antes todas as tarefas dependentes para finalizar esta tarefa.',
+    };
+  }
+
+  return null;
+}
+
+function getTaskApiErrorState(error: any, fallbackMessage: string) {
+  const apiMessage = error?.response?.data?.message || error?.message || '';
+  const apiFieldErrors = error?.response?.data?.errors as
+    | Record<string, string>
+    | undefined;
+  const nextErrors: TaskFormErrors = {};
+  let nextFormError = '';
+
+  if (apiFieldErrors) {
+    Object.entries(apiFieldErrors).forEach(([field, fieldMessage]) => {
+      const mappedMessage = mapTaskApiMessage(fieldMessage)?.message || fieldMessage;
+
+      if (field === 'title') {
+        nextErrors.title = mappedMessage;
+        return;
+      }
+
+      if (field === 'dueDate') {
+        nextErrors.dueDate = mappedMessage;
+        return;
+      }
+
+      if (field === 'status') {
+        nextErrors.status = mappedMessage;
+        return;
+      }
+
+      nextFormError = mappedMessage;
+    });
+  }
+
+  const mappedApiMessage = mapTaskApiMessage(apiMessage);
+
+  if (mappedApiMessage) {
+    nextErrors[mappedApiMessage.field] = mappedApiMessage.message;
+  } else if (!nextFormError) {
+    nextFormError = apiMessage || fallbackMessage;
+  }
+
+  return {
+    fieldErrors: nextErrors,
+    formError: nextFormError,
+  };
+}
+
 export default function TaskForm() {
   const params = useLocalSearchParams<{
     taskId?: string;
@@ -329,10 +415,22 @@ export default function TaskForm() {
 
       goBackToSprintTasks();
     } catch (saveError: any) {
-      setFormError(
-        saveError?.response?.data?.message ||
-          'Nao foi possivel salvar a tarefa.'
+      const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
+        saveError,
+        isEditMode
+          ? 'Nao foi possivel atualizar a tarefa.'
+          : 'Nao foi possivel salvar a tarefa.'
       );
+
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        title: undefined,
+        description: undefined,
+        dueDate: undefined,
+        status: undefined,
+        ...fieldErrors,
+      }));
+      setFormError(nextFormError);
     } finally {
       setSaving(false);
     }
@@ -354,10 +452,18 @@ export default function TaskForm() {
       setStatus(updatedTask.status || status);
       Alert.alert('Sucesso', 'Status atualizado com sucesso.');
     } catch (statusError: any) {
-      setFormError(
-        statusError?.response?.data?.message ||
-          'Nao foi possivel atualizar o status da tarefa.'
+      const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
+        statusError,
+        'Nao foi possivel atualizar o status da tarefa.'
       );
+
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        dueDate: undefined,
+        status: undefined,
+        ...fieldErrors,
+      }));
+      setFormError(nextFormError);
     } finally {
       setStatusSaving(false);
     }
@@ -379,10 +485,18 @@ export default function TaskForm() {
       setStatus(updatedTask.status || 'DONE');
       Alert.alert('Sucesso', 'Tarefa marcada como concluida.');
     } catch (completeError: any) {
-      setFormError(
-        completeError?.response?.data?.message ||
-          'Nao foi possivel concluir a tarefa.'
+      const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
+        completeError,
+        'Nao foi possivel concluir a tarefa.'
       );
+
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        dueDate: undefined,
+        status: undefined,
+        ...fieldErrors,
+      }));
+      setFormError(nextFormError);
     } finally {
       setCompleting(false);
     }
