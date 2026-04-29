@@ -4,12 +4,13 @@ import { Drawer } from 'expo-router/drawer';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { TOKEN_STORAGE_KEY } from '../../services/api';
+import { clearSession } from '../../services/session';
 
 export default function DrawerLayout() {
   const [loading, setLoading] = useState(true);
 
   async function handleLogout() {
-    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await clearSession();
     router.replace('/login');
   }
 
@@ -83,6 +84,20 @@ export default function DrawerLayout() {
         name="tasks"
         options={{
           title: 'Tarefas',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="task-form"
+        options={{
+          title: 'Tarefa',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="project-progress"
+        options={{
+          title: 'Progresso do projeto',
           drawerItemStyle: { display: 'none' },
         }}
       />

@@ -1,10 +1,34 @@
 import { api } from "./api";
 import { Project, ProjectPayload, Sprint, SprintPayload } from "../types/project";
 
+function normalizeProject(project: Project): Project {
+  const rawProject = project as Project & {
+    closed?: boolean;
+    owner?: { id?: number; name?: string };
+    client?: { id?: number; name?: string };
+  };
+
+  const status =
+    project.status ||
+    (rawProject.closed ? "CLOSED" : "ACTIVE");
+
+  return {
+    ...project,
+    description: project.description || "",
+    status,
+    closed: rawProject.closed ?? status === "CLOSED",
+    ownerId: project.ownerId ?? rawProject.owner?.id ?? null,
+    ownerName: project.ownerName ?? rawProject.owner?.name ?? null,
+    clientId: project.clientId ?? rawProject.client?.id ?? null,
+    clientName: project.clientName ?? rawProject.client?.name ?? null,
+  };
+}
+
 function normalizeSprint(sprint: Sprint): Sprint {
   const rawSprint = sprint as Sprint & {
     descricaoSprint?: string;
     sprintDescription?: string;
+    project?: { id?: number; name?: string };
   };
 
   return {
@@ -15,27 +39,29 @@ function normalizeSprint(sprint: Sprint): Sprint {
       rawSprint.descricaoSprint ||
       rawSprint.sprintDescription ||
       "",
+    projectId: sprint.projectId ?? rawSprint.project?.id,
+    projectName: sprint.projectName ?? rawSprint.project?.name,
   };
 }
 
 export async function getProjects() {
   const response = await api.get<Project[]>("/projects");
-  return response.data;
+  return response.data.map(normalizeProject);
 }
 
 export async function getProjectById(id: number) {
   const response = await api.get<Project>(`/projects/${id}`);
-  return response.data;
+  return normalizeProject(response.data);
 }
 
 export async function createProject(payload: ProjectPayload) {
   const response = await api.post<Project>("/projects", payload);
-  return response.data;
+  return normalizeProject(response.data);
 }
 
 export async function updateProject(id: number, payload: ProjectPayload) {
   const response = await api.put<Project>(`/projects/${id}`, payload);
-  return response.data;
+  return normalizeProject(response.data);
 }
 
 export async function closeProject(id: number) {

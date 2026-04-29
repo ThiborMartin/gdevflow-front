@@ -1,7 +1,6 @@
-import { useFocusEffect, router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 import { Button } from '../../components/Button';
 import { ScreenState } from '../../components/ScreenState';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useUserRole } from '../../hooks/useUserRole';
 import { getProjects } from '../../services/projects';
 import { theme } from '../../styles/theme';
 import { Project } from '../../types/project';
@@ -21,19 +21,23 @@ export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const { isClient, loading: roleLoading } = useUserRole();
 
   async function loadProjects(showLoader = true) {
     try {
+      setError('');
+
       if (showLoader) {
         setLoading(true);
       }
 
       const data = await getProjects();
       setProjects(data);
-    } catch (error: any) {
-      Alert.alert(
-        'Erro ao carregar projetos',
-        error?.response?.data?.message || 'Não foi possível buscar seus projetos.'
+    } catch (loadError: any) {
+      setError(
+        loadError?.response?.data?.message ||
+          'Nao foi possivel buscar seus projetos.'
       );
     } finally {
       setLoading(false);
@@ -52,65 +56,100 @@ export default function Projects() {
     await loadProjects(false);
   }
 
+  function openProject(project: Project) {
+    if (!roleLoading && isClient) {
+      router.push({
+        pathname: './project-progress',
+        params: {
+          projectId: project.id,
+          projectName: project.name,
+        },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: '/(drawer)/project-details',
+      params: {
+        projectId: project.id,
+        projectName: project.name,
+      },
+    });
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ScreenState loading title="Carregando projetos..." />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <ScreenState title="Erro ao carregar projetos" description={error} />
+        <Button title="Tentar novamente" onPress={() => loadProjects()} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Meus projetos</Text>
+        <Text style={styles.title}>{isClient ? 'Projetos acompanhados' : 'Meus projetos'}</Text>
         <Text style={styles.subtitle}>
-          Organize seus projetos e acesse as sprints de cada entrega.
+          {isClient
+            ? 'Acesse o progresso dos projetos, sprints e tarefas em tempo real.'
+            : 'Organize seus projetos e acesse as sprints de cada entrega.'}
         </Text>
 
-        <Button
-          title="Novo projeto"
-          onPress={() => router.push('/(drawer)/project-form')}
-        />
+        {!roleLoading && !isClient ? (
+          <Button
+            title="Novo projeto"
+            onPress={() => router.push('/(drawer)/project-form')}
+          />
+        ) : null}
       </View>
 
-      {loading ? (
-        <ScreenState loading title="Carregando projetos..." />
-      ) : (
-        <FlatList
-          data={projects}
-          keyExtractor={(item) => String(item.id)}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          contentContainerStyle={
-            projects.length === 0 ? styles.emptyContent : styles.listContent
-          }
-          ListEmptyComponent={
-            <ScreenState
-              title="Nenhum projeto encontrado"
-              description="Crie seu primeiro projeto para começar a organizar as sprints."
-            />
-          }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() =>
-                router.push({
-                  pathname: '/(drawer)/project-details',
-                  params: { projectId: item.id },
-                })
-              }
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.projectName}>{item.name}</Text>
-                <StatusBadge status={item.status} />
-              </View>
+      <FlatList
+        data={projects}
+        keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        contentContainerStyle={
+          projects.length === 0 ? styles.emptyContent : styles.listContent
+        }
+        ListEmptyComponent={
+          <ScreenState
+            title="Nenhum projeto encontrado"
+            description={
+              isClient
+                ? 'Assim que um projeto for vinculado a voce, ele aparecera aqui.'
+                : 'Crie seu primeiro projeto para comecar a organizar as sprints.'
+            }
+          />
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => openProject(item)}
+          >
+            <View style={styles.cardHeader}>
+              <Text style={styles.projectName}>{item.name}</Text>
+              <StatusBadge status={item.status} />
+            </View>
 
-              <Text style={styles.description} numberOfLines={2}>
-                {item.description || 'Sem descrição cadastrada.'}
-              </Text>
+            <Text style={styles.description} numberOfLines={2}>
+              {item.description || 'Sem descricao cadastrada.'}
+            </Text>
 
-              <Text style={styles.createdAt}>
-                Criado em {formatDate(item.createdAt)}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+            <Text style={styles.createdAt}>Criado em {formatDate(item.createdAt)}</Text>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }

@@ -10,8 +10,12 @@ const statusLabels: Record<string, string> = {
   OPEN: 'Aberto',
   IN_PROGRESS: 'Em andamento',
   PLANNED: 'Planejado',
-  DONE: 'Concluído',
+  TODO: 'A fazer',
+  PENDING: 'A fazer',
+  DONE: 'Concluida',
+  COMPLETED: 'Concluida',
   CLOSED: 'Encerrado',
+  BLOCKED: 'Bloqueada',
   CANCELLED: 'Cancelado',
 };
 
@@ -20,8 +24,12 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   OPEN: { bg: '#E3F2FD', text: '#0D47A1' },
   IN_PROGRESS: { bg: '#FFF8E1', text: '#8A5B00' },
   PLANNED: { bg: '#EEF2FF', text: '#3730A3' },
+  TODO: { bg: '#EEF2F7', text: '#334155' },
+  PENDING: { bg: '#EEF2F7', text: '#334155' },
   DONE: { bg: '#E8F5E9', text: '#1B5E20' },
+  COMPLETED: { bg: '#E8F5E9', text: '#1B5E20' },
   CLOSED: { bg: '#ECEFF1', text: '#455A64' },
+  BLOCKED: { bg: '#FDECEA', text: '#B71C1C' },
   CANCELLED: { bg: '#FDECEA', text: '#B71C1C' },
   SEM_STATUS: { bg: '#EEF2F6', text: theme.colors.text },
 };

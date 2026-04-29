@@ -1,7 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Alert,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -15,12 +14,15 @@ import { ProgressCircle } from '../../components/ProgressCircle';
 import { ScreenState } from '../../components/ScreenState';
 import { SprintCard } from '../../components/SprintCard';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useUserRole } from '../../hooks/useUserRole';
 import { getProjectById, getProjectSprints } from '../../services/projects';
+import { getProjectProgress } from '../../services/tasks';
 import { theme } from '../../styles/theme';
 import { Project, Sprint } from '../../types/project';
+import { ProjectProgress } from '../../types/progress';
 import { formatDate } from '../../utils/date';
 
-const sprintProgressByStatus: Record<string, number> = {
+const fallbackSprintProgressByStatus: Record<string, number> = {
   DONE: 100,
   CLOSED: 100,
   IN_PROGRESS: 55,
@@ -30,8 +32,8 @@ const sprintProgressByStatus: Record<string, number> = {
   CANCELLED: 0,
 };
 
-function getSprintProgress(status?: string) {
-  return sprintProgressByStatus[status?.toUpperCase() || 'PLANNED'] ?? 0;
+function getSprintFallbackProgress(status?: string) {
+  return fallbackSprintProgressByStatus[status?.toUpperCase() || 'PLANNED'] ?? 0;
 }
 
 function getProjectInitials(name: string) {
@@ -60,31 +62,58 @@ export default function ProjectDetails() {
   const projectId = useMemo(() => Number(params.projectId), [params.projectId]);
   const [project, setProject] = useState<Project | null>(null);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [progress, setProgress] = useState<ProjectProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const { isClient, isFreelancer, loading: roleLoading } = useUserRole();
 
-  const projectClosed = project?.status?.toUpperCase() === 'CLOSED';
+  const mergedSprints = useMemo(() => {
+    const sprintProgressMap = new Map(
+      progress?.sprints.map((sprintProgress) => [sprintProgress.id, sprintProgress]) || []
+    );
+
+    return sprints.map((sprint) => {
+      const sprintProgress = sprintProgressMap.get(sprint.id);
+
+      if (!sprintProgress) {
+        return sprint;
+      }
+
+      return {
+        ...sprint,
+        progressPercentage: sprintProgress.progressPercentage,
+        totalTasks: sprintProgress.totalTasks,
+        completedTasks: sprintProgress.completedTasks,
+        inProgressTasks: sprintProgress.inProgressTasks,
+        pendingTasks: sprintProgress.pendingTasks,
+        blockedTasks: sprintProgress.blockedTasks,
+      };
+    });
+  }, [progress?.sprints, sprints]);
 
   const dashboard = useMemo(() => {
-    const totalSprints = sprints.length;
-    const doneSprints = sprints.filter(
+    const totalSprints = mergedSprints.length;
+    const doneSprints = mergedSprints.filter(
       (sprint) => sprint.status?.toUpperCase() === 'DONE'
     ).length;
-    const runningSprints = sprints.filter(
+    const runningSprints = mergedSprints.filter(
       (sprint) => sprint.status?.toUpperCase() === 'IN_PROGRESS'
     ).length;
-    const pendingSprints = sprints.filter((sprint) =>
+    const pendingSprints = mergedSprints.filter((sprint) =>
       ['PLANNED', 'OPEN'].includes(sprint.status?.toUpperCase() || '')
     ).length;
     const projectProgress =
-      totalSprints === 0
+      progress?.completionPercentage ??
+      (totalSprints === 0
         ? 0
         : Math.round(
-            sprints.reduce(
-              (sum, sprint) => sum + getSprintProgress(sprint.status),
+            mergedSprints.reduce(
+              (sum, sprint) =>
+                sum + (sprint.progressPercentage ?? getSprintFallbackProgress(sprint.status)),
               0
             ) / totalSprints
-          );
+          ));
 
     return {
       projectProgress,
@@ -92,40 +121,56 @@ export default function ProjectDetails() {
       doneSprints,
       runningSprints,
       pendingSprints,
-      currentSprint: getCurrentSprintLabel(sprints),
+      totalTasks: progress?.totalTasks ?? '--',
+      blockedTasks: progress?.blockedTasks ?? '--',
+      currentSprint: getCurrentSprintLabel(mergedSprints),
     };
-  }, [sprints]);
+  }, [mergedSprints, progress]);
 
-  const loadProjectData = useCallback(async (showLoader = true) => {
-    if (!projectId) {
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
+  const projectClosed = project?.closed || project?.status?.toUpperCase() === 'CLOSED';
 
-    try {
-      if (showLoader) {
-        setLoading(true);
+  const loadProjectData = useCallback(
+    async (showLoader = true) => {
+      if (!projectId) {
+        setError('Projeto invalido para carregar os detalhes.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
       }
 
-      const [projectData, sprintData] = await Promise.all([
-        getProjectById(projectId),
-        getProjectSprints(projectId),
-      ]);
+      try {
+        setError('');
 
-      setProject(projectData);
-      setSprints(sprintData);
-    } catch (error: any) {
-      Alert.alert(
-        'Erro ao carregar projeto',
-        error?.response?.data?.message ||
-          'Não foi possível carregar os dados do projeto.'
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [projectId]);
+        if (showLoader) {
+          setLoading(true);
+        }
+
+        const [projectData, sprintData] = await Promise.all([
+          getProjectById(projectId),
+          getProjectSprints(projectId),
+        ]);
+
+        setProject(projectData);
+        setSprints(sprintData);
+
+        try {
+          const progressData = await getProjectProgress(projectId);
+          setProgress(progressData);
+        } catch {
+          setProgress(null);
+        }
+      } catch (loadError: any) {
+        setError(
+          loadError?.response?.data?.message ||
+            'Nao foi possivel carregar os dados do projeto.'
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [projectId]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -138,6 +183,21 @@ export default function ProjectDetails() {
     await loadProjectData(false);
   }
 
+  function openSprintTasks(sprint: Sprint) {
+    router.push({
+      pathname: '/(drawer)/tasks',
+      params: {
+        projectId: String(project?.id || projectId),
+        sprintId: String(sprint.id),
+        projectName: project?.name,
+        sprintName: sprint.name,
+        sprintStatus: sprint.status,
+        sprintStartDate: sprint.startDate,
+        sprintEndDate: sprint.endDate,
+      },
+    });
+  }
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -146,11 +206,22 @@ export default function ProjectDetails() {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <ScreenState title="Erro ao carregar projeto" description={error} />
+        <View style={styles.retryWrapper}>
+          <Button title="Tentar novamente" onPress={() => loadProjectData()} />
+        </View>
+      </View>
+    );
+  }
+
   if (!project) {
     return (
       <View style={styles.container}>
         <ScreenState
-          title="Projeto não encontrado"
+          title="Projeto nao encontrado"
           description="Volte para a listagem e tente abrir o projeto novamente."
         />
       </View>
@@ -183,9 +254,9 @@ export default function ProjectDetails() {
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryTextBlock}>
-            <Text style={styles.sectionLabel}>Visão geral</Text>
+            <Text style={styles.sectionLabel}>Visao geral</Text>
             <Text style={styles.description}>
-              {project.description || 'Sem descrição cadastrada.'}
+              {project.description || 'Sem descricao cadastrada.'}
             </Text>
             <Text style={styles.currentSprintLabel}>Sprint em foco</Text>
             <Text style={styles.currentSprintValue}>{dashboard.currentSprint}</Text>
@@ -196,9 +267,9 @@ export default function ProjectDetails() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Indicadores rápidos</Text>
+        <Text style={styles.sectionTitle}>Indicadores rapidos</Text>
         <Text style={styles.sectionSubtitle}>
-          Resumo operacional do backlog e execução.
+          Resumo operacional do backlog e do andamento atual.
         </Text>
       </View>
 
@@ -206,7 +277,7 @@ export default function ProjectDetails() {
         <MetricCard
           label="Total de sprints"
           value={dashboard.totalSprints}
-          helper={`${dashboard.doneSprints} concluídas`}
+          helper={`${dashboard.doneSprints} concluidas`}
           accentColor={theme.colors.primary}
         />
         <MetricCard
@@ -216,52 +287,72 @@ export default function ProjectDetails() {
           accentColor="#2563EB"
         />
         <MetricCard
-          label="Pendentes"
-          value={dashboard.pendingSprints}
-          helper="Planejadas/abertas"
-          accentColor="#9333EA"
+          label="Tarefas"
+          value={dashboard.totalTasks}
+          helper="Backlog do projeto"
+          accentColor="#0F766E"
         />
         <MetricCard
-          label="Tarefas"
-          value="--"
-          helper="Preparado para futura integração"
-          accentColor="#0F766E"
+          label="Bloqueios"
+          value={dashboard.blockedTasks}
+          helper={`${dashboard.pendingSprints} sprints pendentes`}
+          accentColor="#DC2626"
         />
       </View>
 
       <View style={styles.actionsCard}>
-        <Text style={styles.sectionTitle}>Ações do projeto</Text>
+        <Text style={styles.sectionTitle}>Acoes do projeto</Text>
         <Text style={styles.sectionSubtitle}>
-          Gerencie sprints e atualize as definições do projeto.
+          Abra o dashboard de progresso e acompanhe as sprints do projeto.
         </Text>
 
         <View style={styles.actionButtons}>
           <Button
-            title="Criar sprint"
+            title="Visualizar progresso"
             onPress={() =>
               router.push({
-                pathname: '/(drawer)/sprint-form',
-                params: { projectId: project.id },
+                pathname: './project-progress',
+                params: { projectId: project.id, projectName: project.name },
               })
             }
-            disabled={projectClosed}
           />
 
-          <Button
-            title="Editar projeto"
-            variant="secondary"
-            onPress={() =>
-              router.push({
-                pathname: '/(drawer)/project-form',
-                params: { projectId: project.id },
-              })
-            }
-          />
+          {!roleLoading && isFreelancer ? (
+            <Button
+              title="Criar sprint"
+              onPress={() =>
+                router.push({
+                  pathname: '/(drawer)/sprint-form',
+                  params: { projectId: project.id },
+                })
+              }
+              disabled={projectClosed}
+            />
+          ) : null}
+
+          {!roleLoading && isFreelancer ? (
+            <Button
+              title="Editar projeto"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/(drawer)/project-form',
+                  params: { projectId: project.id },
+                })
+              }
+            />
+          ) : null}
         </View>
 
-        {projectClosed ? (
+        {projectClosed && !roleLoading && isFreelancer ? (
           <Text style={styles.closedNotice}>
-            Projeto encerrado. Novas sprints estão bloqueadas.
+            Projeto encerrado. Novas sprints estao bloqueadas.
+          </Text>
+        ) : null}
+
+        {!roleLoading && isClient ? (
+          <Text style={styles.clientNotice}>
+            Modo cliente ativo: acompanhamento somente para leitura.
           </Text>
         ) : null}
       </View>
@@ -269,35 +360,38 @@ export default function ProjectDetails() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Sprints</Text>
         <Text style={styles.sectionSubtitle}>
-          Acompanhe planejamento, status e andamento de cada ciclo.
+          Toque em uma sprint para abrir a lista de tarefas correspondente.
         </Text>
       </View>
 
       <FlatList
-        data={sprints}
+        data={mergedSprints}
         keyExtractor={(item) => String(item.id)}
         scrollEnabled={false}
         ListEmptyComponent={
           <View style={styles.emptyStateWrapper}>
             <ScreenState
               title="Nenhuma sprint cadastrada"
-              description="Crie a primeira sprint para organizar a execução deste projeto."
+              description="Crie a primeira sprint para organizar a execucao deste projeto."
             />
           </View>
         }
         renderItem={({ item }) => (
           <SprintCard
             sprint={item}
-            progress={getSprintProgress(item.status)}
-            onPress={() =>
-              router.push({
-                pathname: '/(drawer)/sprint-form',
-                params: {
-                  projectId: project.id,
-                  sprintId: item.id,
-                },
-              })
+            progress={item.progressPercentage ?? getSprintFallbackProgress(item.status)}
+            actionLabel="Ver tarefas"
+            footerPrimaryText={
+              typeof item.totalTasks === 'number'
+                ? `${item.totalTasks} tarefas`
+                : 'Sem total de tarefas ainda'
             }
+            footerSecondaryText={
+              typeof item.completedTasks === 'number'
+                ? `${item.completedTasks} concluidas`
+                : 'Progresso via status da sprint'
+            }
+            onPress={() => openSprintTasks(item)}
           />
         )}
       />
@@ -309,6 +403,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F6F8',
+  },
+  retryWrapper: {
+    paddingHorizontal: 24,
   },
   content: {
     padding: 20,
@@ -447,6 +544,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     color: '#B71C1C',
+    fontWeight: '600',
+  },
+  clientNotice: {
+    marginTop: 12,
+    fontSize: 13,
+    color: '#475569',
     fontWeight: '600',
   },
   emptyStateWrapper: {

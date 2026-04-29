@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { useState } from 'react';
 import { Link, router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
-import { api, TOKEN_STORAGE_KEY } from '../services/api';
+import { api } from '../services/api';
+import { persistSession } from '../services/session';
 import { SocialButton } from '@/components/SocialButton';
 import { isValidEmail } from '../utils/validation';
 
@@ -62,9 +62,7 @@ export default function Login() {
         password,
       });
 
-      const { token } = response.data;
-
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+      await persistSession(response.data);
 
       Alert.alert('Sucesso', 'Login realizado com sucesso');
       router.replace('/(drawer)');
