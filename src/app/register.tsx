@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import {
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   Platform,
   Alert,
@@ -13,21 +14,40 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Logo } from '../components/Logo';
 import { api } from '../services/api';
+import { theme } from '../styles/theme';
+import { UserRole } from '../types/auth';
 import { isValidEmail, MIN_PASSWORD_LENGTH } from '../utils/validation';
+
+type AccountRole = Exclude<UserRole, 'UNKNOWN'>;
 
 interface RegisterErrors {
   name?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
+  role?: string;
   form?: string;
 }
+
+const ACCOUNT_OPTIONS: { role: AccountRole; title: string; description: string }[] = [
+  {
+    role: 'FREELANCER',
+    title: 'Sou Freelancer',
+    description: 'Quero gerenciar projetos, sprints e tarefas.',
+  },
+  {
+    role: 'CLIENT',
+    title: 'Sou Cliente',
+    description: 'Quero acompanhar projetos e entregas.',
+  },
+];
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<AccountRole>('FREELANCER');
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +65,7 @@ export default function Register() {
     if (!trimmedEmail) {
       nextErrors.email = 'Informe seu email.';
     } else if (!isValidEmail(trimmedEmail)) {
-      nextErrors.email = 'Informe um email válido.';
+      nextErrors.email = 'Informe um email valido.';
     }
 
     if (!password) {
@@ -57,7 +77,11 @@ export default function Register() {
     if (!confirmPassword) {
       nextErrors.confirmPassword = 'Confirme sua senha.';
     } else if (password && confirmPassword !== password) {
-      nextErrors.confirmPassword = 'As senhas não coincidem.';
+      nextErrors.confirmPassword = 'As senhas nao coincidem.';
+    }
+
+    if (!role) {
+      nextErrors.role = 'Escolha como pretende usar o GDevFlow.';
     }
 
     setErrors(nextErrors);
@@ -80,15 +104,37 @@ export default function Register() {
         name: name.trim(),
         email: email.trim(),
         password,
+        role,
       });
 
       Alert.alert('Sucesso', 'Conta criada com sucesso');
       router.replace('/login');
     } catch (error: any) {
+      const apiMessage = error?.response?.data?.message as string | undefined;
+      const apiErrors = error?.response?.data?.errors as
+        | Partial<Record<keyof RegisterErrors, string>>
+        | undefined;
+
+      if (error?.response?.status === 409) {
+        setErrors({
+          email: apiMessage || 'Este email ja esta em uso.',
+        });
+        return;
+      }
+
+      if (apiErrors) {
+        setErrors({
+          name: apiErrors.name,
+          email: apiErrors.email,
+          password: apiErrors.password,
+          role: apiErrors.role,
+          form: apiMessage && apiMessage !== 'Payload invalido' ? apiMessage : undefined,
+        });
+        return;
+      }
+
       setErrors({
-        form:
-          error?.response?.data?.message ||
-          'Não foi possível criar a conta. Verifique os dados e tente novamente.',
+        form: apiMessage || 'Nao foi possivel criar a conta. Verifique os dados e tente novamente.',
       });
     } finally {
       setLoading(false);
@@ -110,6 +156,56 @@ export default function Register() {
           <Text style={styles.subtitle}>Crie sua conta no G Dev Flow</Text>
 
           {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
+
+          <View style={styles.roleSection}>
+            <Text style={styles.roleLabel}>Como voce pretende usar o GDevFlow?</Text>
+            <Text style={styles.roleHint}>
+              Freelancer para gerenciar projetos ou Cliente para acompanhar entregas.
+            </Text>
+
+            <View style={styles.roleOptions}>
+              {ACCOUNT_OPTIONS.map((option) => {
+                const isSelected = role === option.role;
+
+                return (
+                  <TouchableOpacity
+                    key={option.role}
+                    style={[
+                      styles.roleOption,
+                      isSelected && styles.roleOptionSelected,
+                      errors.role && styles.roleOptionWithError,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setRole(option.role);
+                      clearFieldError('role');
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.roleIndicator,
+                        isSelected && styles.roleIndicatorSelected,
+                      ]}
+                    />
+
+                    <View style={styles.roleTextContent}>
+                      <Text
+                        style={[
+                          styles.roleOptionTitle,
+                          isSelected && styles.roleOptionTitleSelected,
+                        ]}
+                      >
+                        {option.title}
+                      </Text>
+                      <Text style={styles.roleOptionDescription}>{option.description}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {errors.role ? <Text style={styles.roleError}>{errors.role}</Text> : null}
+          </View>
 
           <Input
             placeholder="Nome"
@@ -201,6 +297,76 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     color: '#666',
+  },
+  roleSection: {
+    marginBottom: 20,
+  },
+  roleLabel: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  roleHint: {
+    color: '#666',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  roleOptions: {
+    gap: 10,
+  },
+  roleOption: {
+    borderWidth: 1,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  roleOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: '#FFF9D9',
+  },
+  roleOptionWithError: {
+    borderColor: '#D32F2F',
+  },
+  roleIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#B7C0C8',
+    marginRight: 12,
+    backgroundColor: '#FFF',
+  },
+  roleIndicatorSelected: {
+    borderColor: '#D8A700',
+    backgroundColor: theme.colors.primary,
+  },
+  roleTextContent: {
+    flex: 1,
+  },
+  roleOptionTitle: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  roleOptionTitleSelected: {
+    color: '#7A5E00',
+  },
+  roleOptionDescription: {
+    color: '#666',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  roleError: {
+    marginTop: 8,
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
   },
   formError: {
     backgroundColor: '#FDECEA',
