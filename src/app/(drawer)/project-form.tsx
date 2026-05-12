@@ -10,8 +10,10 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { ClientSearchBox } from '../../components/ClientSearchBox';
 import { Input } from '../../components/Input';
 import { ScreenState } from '../../components/ScreenState';
+import { useUserRole } from '../../hooks/useUserRole';
 import {
   closeProject,
   createProject,
@@ -19,6 +21,7 @@ import {
   updateProject,
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
+import { ClientSearchResult } from '../../types/client';
 
 interface ProjectFormErrors {
   name?: string;
@@ -30,10 +33,12 @@ export default function ProjectForm() {
   const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = useMemo(() => Number(params.projectId), [params.projectId]);
   const isEditMode = Number.isFinite(projectId) && projectId > 0;
+  const { isFreelancer, loading: roleLoading } = useUserRole();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<string | undefined>();
+  const [selectedClient, setSelectedClient] = useState<ClientSearchResult | null>(null);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -52,9 +57,7 @@ export default function ProjectForm() {
         setStatus(project.status);
       } catch (error: any) {
         setErrors({
-          form:
-            error?.response?.data?.message ||
-            'Não foi possível carregar o projeto.',
+          form: error?.response?.data?.message || 'Nao foi possivel carregar o projeto.',
         });
       } finally {
         setLoading(false);
@@ -76,13 +79,13 @@ export default function ProjectForm() {
     }
 
     if (!trimmedDescription) {
-      nextErrors.description = 'Informe a descrição do projeto.';
+      nextErrors.description = 'Informe a descricao do projeto.';
     } else if (trimmedDescription.length < 10) {
-      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
+      nextErrors.description = 'A descricao deve ter pelo menos 10 caracteres.';
     }
 
     if (nextErrors.name || nextErrors.description) {
-      nextErrors.form = 'Preencha corretamente os campos obrigatórios.';
+      nextErrors.form = 'Preencha corretamente os campos obrigatorios.';
     }
 
     setErrors(nextErrors);
@@ -123,7 +126,7 @@ export default function ProjectForm() {
       setErrors({
         form:
           error?.response?.data?.message ||
-          'Não foi possível salvar o projeto. Verifique os dados e tente novamente.',
+          'Nao foi possivel salvar o projeto. Verifique os dados e tente novamente.',
       });
     } finally {
       setSaving(false);
@@ -147,9 +150,7 @@ export default function ProjectForm() {
               router.back();
             } catch (error: any) {
               setErrors({
-                form:
-                  error?.response?.data?.message ||
-                  'Não foi possível encerrar o projeto.',
+                form: error?.response?.data?.message || 'Nao foi possivel encerrar o projeto.',
               });
             } finally {
               setSaving(false);
@@ -182,7 +183,7 @@ export default function ProjectForm() {
           {isEditMode ? 'Editar projeto' : 'Novo projeto'}
         </Text>
         <Text style={styles.subtitle}>
-          Preencha as informações principais para organizar seu trabalho.
+          Preencha as informacoes principais para organizar seu trabalho.
         </Text>
 
         <View style={styles.card}>
@@ -199,7 +200,7 @@ export default function ProjectForm() {
             error={errors.name}
           />
 
-          <Text style={styles.label}>Descrição</Text>
+          <Text style={styles.label}>Descricao</Text>
           <Input
             placeholder="Descreva brevemente o escopo do projeto"
             value={description}
@@ -211,6 +212,18 @@ export default function ProjectForm() {
             numberOfLines={5}
             error={errors.description}
           />
+
+          {!roleLoading && isFreelancer ? (
+            <View style={styles.clientSearchSection}>
+              <ClientSearchBox onSelectClient={setSelectedClient} />
+
+              <Text style={styles.clientSearchNotice}>
+                {selectedClient
+                  ? `Cliente selecionado localmente: ${selectedClient.name} (${selectedClient.email}). A vinculacao ao projeto sera habilitada em uma proxima tarefa.`
+                  : 'Use a busca para localizar um cliente cadastrado. Nesta etapa, a selecao nao sera salva no projeto.'}
+              </Text>
+            </View>
+          ) : null}
 
           <Button
             title={saving ? 'Salvando...' : 'Salvar projeto'}
@@ -285,5 +298,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: theme.colors.text,
+  },
+  clientSearchSection: {
+    marginTop: 8,
+    marginBottom: 18,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EEF2F6',
+  },
+  clientSearchNotice: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#475569',
   },
 });
