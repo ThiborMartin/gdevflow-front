@@ -4,8 +4,8 @@ import { Project, ProjectPayload, Sprint, SprintPayload } from "../types/project
 function normalizeProject(project: Project): Project {
   const rawProject = project as Project & {
     closed?: boolean;
-    owner?: { id?: number; name?: string };
-    client?: { id?: number; name?: string };
+    owner?: { id?: number; name?: string; email?: string };
+    client?: { id?: number; name?: string; email?: string };
   };
 
   const status =
@@ -19,8 +19,10 @@ function normalizeProject(project: Project): Project {
     closed: rawProject.closed ?? status === "CLOSED",
     ownerId: project.ownerId ?? rawProject.owner?.id ?? null,
     ownerName: project.ownerName ?? rawProject.owner?.name ?? null,
+    ownerEmail: project.ownerEmail ?? rawProject.owner?.email ?? null,
     clientId: project.clientId ?? rawProject.client?.id ?? null,
     clientName: project.clientName ?? rawProject.client?.name ?? null,
+    clientEmail: project.clientEmail ?? rawProject.client?.email ?? null,
   };
 }
 
@@ -61,6 +63,14 @@ export async function createProject(payload: ProjectPayload) {
 
 export async function updateProject(id: number, payload: ProjectPayload) {
   const response = await api.put<Project>(`/projects/${id}`, payload);
+  return normalizeProject(response.data);
+}
+
+export async function assignClientToProject(projectId: number, clientId: number) {
+  const response = await api.patch<Project>(`/projects/${projectId}/client`, {
+    clientId,
+  });
+
   return normalizeProject(response.data);
 }
 

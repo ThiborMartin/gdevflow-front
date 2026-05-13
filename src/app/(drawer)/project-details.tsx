@@ -1,6 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -10,15 +11,17 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { ClientSearchBox } from '../../components/ClientSearchBox';
 import { MetricCard } from '../../components/MetricCard';
 import { ProgressCircle } from '../../components/ProgressCircle';
 import { ScreenState } from '../../components/ScreenState';
 import { SprintCard } from '../../components/SprintCard';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUserRole } from '../../hooks/useUserRole';
-import { getProjectById, getProjectSprints } from '../../services/projects';
+import { assignClientToProject, getProjectById, getProjectSprints } from '../../services/projects';
 import { getProjectProgress } from '../../services/tasks';
 import { theme } from '../../styles/theme';
+import { ClientSearchResult } from '../../types/client';
 import { Project, Sprint } from '../../types/project';
 import { ProjectProgress } from '../../types/progress';
 import { formatDate } from '../../utils/date';
@@ -67,6 +70,9 @@ export default function ProjectDetails() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [selectedClient, setSelectedClient] = useState<ClientSearchResult | null>(null);
+  const [assigningClient, setAssigningClient] = useState(false);
+  const [clientAssignmentError, setClientAssignmentError] = useState('');
   const { isClient, isFreelancer, loading: roleLoading } = useUserRole();
 
   const mergedSprints = useMemo(() => {
@@ -129,6 +135,7 @@ export default function ProjectDetails() {
   }, [mergedSprints, progress]);
 
   const projectClosed = project?.closed || project?.status?.toUpperCase() === 'CLOSED';
+  const projectHasClient = Boolean(project?.clientId);
 
   const loadProjectData = useCallback(
     async (showLoader = true) => {
@@ -152,6 +159,8 @@ export default function ProjectDetails() {
         ]);
 
         setProject(projectData);
+        setSelectedClient(null);
+        setClientAssignmentError('');
         setSprints(sprintData);
 
         try {
@@ -182,6 +191,31 @@ export default function ProjectDetails() {
   async function handleRefresh() {
     setRefreshing(true);
     await loadProjectData(false);
+  }
+
+  async function handleAssignClient() {
+    if (!project || !selectedClient) {
+      setClientAssignmentError('Selecione um cliente antes de vincular.');
+      return;
+    }
+
+    try {
+      setAssigningClient(true);
+      setClientAssignmentError('');
+
+      const updatedProject = await assignClientToProject(project.id, selectedClient.id);
+      setProject(updatedProject);
+      setSelectedClient(null);
+
+      Alert.alert('Sucesso', 'Cliente vinculado ao projeto com sucesso.');
+    } catch (assignError: any) {
+      setClientAssignmentError(
+        assignError?.response?.data?.message ||
+          'Nao foi possivel vincular o cliente ao projeto.'
+      );
+    } finally {
+      setAssigningClient(false);
+    }
   }
 
   function openSprintTasks(sprint: Sprint) {
@@ -353,6 +387,59 @@ export default function ProjectDetails() {
             Modo cliente ativo: acompanhamento somente para leitura.
           </Text>
         ) : null}
+      </View>
+
+      <View style={styles.clientCard}>
+        <Text style={styles.sectionTitle}>Cliente do projeto</Text>
+
+        {projectHasClient ? (
+          <>
+            <Text style={styles.sectionSubtitle}>
+              Este projeto ja possui um cliente vinculado.
+            </Text>
+
+            <View style={styles.clientSummaryCard}>
+              <Text style={styles.clientSummaryLabel}>Cliente vinculado</Text>
+              <Text style={styles.clientSummaryName}>{project.clientName}</Text>
+              <Text style={styles.clientSummaryEmail}>
+                {project.clientEmail || 'Email nao disponivel'}
+              </Text>
+            </View>
+          </>
+        ) : !roleLoading && isFreelancer ? (
+          <>
+            <Text style={styles.sectionSubtitle}>
+              Vincule um cliente para que ele acompanhe o progresso deste projeto.
+            </Text>
+
+            <ClientSearchBox
+              onSelectClient={(client) => {
+                setSelectedClient(client);
+                setClientAssignmentError('');
+              }}
+            />
+
+            {selectedClient ? (
+              <Text style={styles.clientSelectionHint}>
+                Cliente selecionado: {selectedClient.name} ({selectedClient.email})
+              </Text>
+            ) : null}
+
+            {clientAssignmentError ? (
+              <Text style={styles.clientAssignmentError}>{clientAssignmentError}</Text>
+            ) : null}
+
+            <Button
+              title={assigningClient ? 'Vinculando cliente...' : 'Vincular cliente'}
+              onPress={handleAssignClient}
+              disabled={assigningClient || !selectedClient}
+            />
+          </>
+        ) : (
+          <Text style={styles.sectionSubtitle}>
+            Ainda nao ha cliente vinculado a este projeto.
+          </Text>
+        )}
       </View>
 
       <View style={styles.sectionHeader}>
@@ -574,6 +661,18 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 24,
   },
+  clientCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#EEF2F6',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 24,
+  },
   actionButtons: {
     marginTop: 14,
     gap: 6,
@@ -589,6 +688,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#475569',
     fontWeight: '600',
+  },
+  clientSummaryCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#D9E2EC',
+  },
+  clientSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    color: theme.colors.muted,
+  },
+  clientSummaryName: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  clientSummaryEmail: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#475569',
+  },
+  clientSelectionHint: {
+    marginTop: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  clientAssignmentError: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#B71C1C',
   },
   emptyStateWrapper: {
     backgroundColor: '#FFF',

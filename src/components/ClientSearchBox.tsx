@@ -64,7 +64,7 @@ export function ClientSearchBox({ onSelectClient }: ClientSearchBoxProps) {
     <View style={styles.container}>
       <Text style={styles.title}>Buscar cliente por e-mail</Text>
       <Text style={styles.description}>
-        Localize um cliente cadastrado para preparar a vinculacao em uma proxima etapa.
+        Localize um cliente cadastrado e selecione-o para vincular ao projeto.
       </Text>
 
       <Input

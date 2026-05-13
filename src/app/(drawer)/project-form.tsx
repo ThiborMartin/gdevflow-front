@@ -10,10 +10,8 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
-import { ClientSearchBox } from '../../components/ClientSearchBox';
 import { Input } from '../../components/Input';
 import { ScreenState } from '../../components/ScreenState';
-import { useUserRole } from '../../hooks/useUserRole';
 import {
   closeProject,
   createProject,
@@ -21,7 +19,6 @@ import {
   updateProject,
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
-import { ClientSearchResult } from '../../types/client';
 
 interface ProjectFormErrors {
   name?: string;
@@ -33,12 +30,10 @@ export default function ProjectForm() {
   const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = useMemo(() => Number(params.projectId), [params.projectId]);
   const isEditMode = Number.isFinite(projectId) && projectId > 0;
-  const { isFreelancer, loading: roleLoading } = useUserRole();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<string | undefined>();
-  const [selectedClient, setSelectedClient] = useState<ClientSearchResult | null>(null);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -213,18 +208,6 @@ export default function ProjectForm() {
             error={errors.description}
           />
 
-          {!roleLoading && isFreelancer ? (
-            <View style={styles.clientSearchSection}>
-              <ClientSearchBox onSelectClient={setSelectedClient} />
-
-              <Text style={styles.clientSearchNotice}>
-                {selectedClient
-                  ? `Cliente selecionado localmente: ${selectedClient.name} (${selectedClient.email}). A vinculacao ao projeto sera habilitada em uma proxima tarefa.`
-                  : 'Use a busca para localizar um cliente cadastrado. Nesta etapa, a selecao nao sera salva no projeto.'}
-              </Text>
-            </View>
-          ) : null}
-
           <Button
             title={saving ? 'Salvando...' : 'Salvar projeto'}
             onPress={handleSave}
@@ -298,18 +281,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: theme.colors.text,
-  },
-  clientSearchSection: {
-    marginTop: 8,
-    marginBottom: 18,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#EEF2F6',
-  },
-  clientSearchNotice: {
-    marginTop: 12,
-    fontSize: 13,
-    lineHeight: 19,
-    color: '#475569',
   },
 });

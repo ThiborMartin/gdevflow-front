@@ -1,3 +1,9 @@
+export interface ProjectUserSummary {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Project {
   id: number;
   name: string;
@@ -5,10 +11,14 @@ export interface Project {
   createdAt?: string;
   status?: string;
   closed?: boolean;
+  owner?: ProjectUserSummary | null;
+  client?: ProjectUserSummary | null;
   ownerId?: number | null;
   ownerName?: string | null;
+  ownerEmail?: string | null;
   clientId?: number | null;
   clientName?: string | null;
+  clientEmail?: string | null;
 }
 
 export interface Sprint {
@@ -34,7 +44,6 @@ export interface Sprint {
 export interface ProjectPayload {
   name: string;
   description: string;
-  clientId?: number | null;
 }
 
 export interface SprintPayload {
