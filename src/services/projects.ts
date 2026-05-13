@@ -5,6 +5,7 @@ function normalizeProject(project: Project): Project {
   return {
     ...project,
     description: project.description || "",
+    completedAt: project.completedAt ?? null,
     owner: project.owner,
     client: project.client ?? null,
   };
@@ -58,8 +59,19 @@ export async function assignClientToProject(projectId: number, clientId: number)
   return normalizeProject(response.data);
 }
 
+export async function requestProjectApproval(projectId: number) {
+  const response = await api.patch<Project>(`/projects/${projectId}/request-approval`);
+  return normalizeProject(response.data);
+}
+
+export async function approveProject(projectId: number) {
+  const response = await api.patch<Project>(`/projects/${projectId}/approve`);
+  return normalizeProject(response.data);
+}
+
 export async function closeProject(id: number) {
-  await api.patch(`/projects/${id}/close`);
+  const response = await api.patch<Project>(`/projects/${id}/close`);
+  return normalizeProject(response.data);
 }
 
 export async function getProjectSprints(projectId: number) {

@@ -1,6 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,9 +15,11 @@ import { ProjectStatusBadge } from '../../components/ProjectStatusBadge';
 import { ScreenState } from '../../components/ScreenState';
 import { SprintProgressCard } from '../../components/SprintProgressCard';
 import { useUserRole } from '../../hooks/useUserRole';
+import { approveProject, requestProjectApproval } from '../../services/projects';
 import { getProjectProgress } from '../../services/tasks';
 import { theme } from '../../styles/theme';
 import { ProjectProgress } from '../../types/progress';
+import { formatDate } from '../../utils/date';
 
 export default function ProjectProgressScreen() {
   const params = useLocalSearchParams<{ projectId?: string }>();
@@ -25,7 +28,9 @@ export default function ProjectProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const { isFreelancer, loading: roleLoading } = useUserRole();
+  const [requestingApproval, setRequestingApproval] = useState(false);
+  const [approvingProject, setApprovingProject] = useState(false);
+  const { isClient, isFreelancer, loading: roleLoading } = useUserRole();
 
   const loadProgress = useCallback(
     async (showLoader = true) => {
@@ -67,6 +72,155 @@ export default function ProjectProgressScreen() {
   async function handleRefresh() {
     setRefreshing(true);
     await loadProgress(false);
+  }
+
+  const allTasksDone = (progress?.totalTasks || 0) > 0 && progress?.doneTasks === progress?.totalTasks;
+  const canRequestApproval =
+    !roleLoading &&
+    isFreelancer &&
+    progress?.projectStatus === 'IN_PROGRESS' &&
+    Boolean(progress.client) &&
+    allTasksDone;
+  const canApproveProject =
+    !roleLoading &&
+    isClient &&
+    progress?.projectStatus === 'WAITING_CLIENT_APPROVAL' &&
+    allTasksDone;
+
+  const requestApprovalHint = useMemo(() => {
+    if (!progress || roleLoading || !isFreelancer) {
+      return '';
+    }
+
+    if (progress.projectStatus === 'WAITING_CLIENT_APPROVAL') {
+      return 'Projeto enviado para o cliente. Agora basta aguardar a aprovacao final.';
+    }
+
+    if (progress.projectStatus === 'COMPLETED') {
+      return progress.completedAt
+        ? `Projeto concluido em ${formatDate(progress.completedAt)}.`
+        : 'Projeto ja concluido com aprovacao do cliente.';
+    }
+
+    if (!progress.client) {
+      return 'Vincule um cliente ao projeto antes de solicitar aprovacao.';
+    }
+
+    if (progress.totalTasks === 0) {
+      return 'Cadastre pelo menos uma tarefa antes de solicitar aprovacao.';
+    }
+
+    if (!allTasksDone) {
+      return 'Conclua todas as tarefas para solicitar aprovacao.';
+    }
+
+    return 'Quando tudo estiver pronto, envie o projeto para aprovacao do cliente.';
+  }, [allTasksDone, isFreelancer, progress, roleLoading]);
+
+  const clientApprovalHint = useMemo(() => {
+    if (!progress || roleLoading || !isClient) {
+      return '';
+    }
+
+    if (progress.projectStatus === 'COMPLETED') {
+      return progress.completedAt
+        ? `Projeto aprovado em ${formatDate(progress.completedAt)}.`
+        : 'Projeto aprovado com sucesso.';
+    }
+
+    if (progress.projectStatus !== 'WAITING_CLIENT_APPROVAL') {
+      return 'O freelancer ainda nao solicitou sua aprovacao final.';
+    }
+
+    if (!allTasksDone) {
+      return 'Ainda existem tarefas pendentes neste projeto.';
+    }
+
+    return 'Revise o progresso abaixo e aprove a conclusao quando estiver tudo certo.';
+  }, [allTasksDone, isClient, progress, roleLoading]);
+
+  async function handleRequestApproval() {
+    if (!progress || !projectId || !canRequestApproval) {
+      return;
+    }
+
+    try {
+      setRequestingApproval(true);
+      const updatedProject = await requestProjectApproval(projectId);
+
+      setProgress((current) =>
+        current
+          ? {
+              ...current,
+              projectStatus: updatedProject.status,
+              completedAt: updatedProject.completedAt ?? null,
+              freelancer: updatedProject.owner,
+              client: updatedProject.client,
+            }
+          : current
+      );
+
+      Alert.alert('Sucesso', 'Projeto enviado para aprovacao do cliente.');
+    } catch (requestError: any) {
+      Alert.alert(
+        'Erro ao solicitar aprovacao',
+        requestError?.response?.data?.message ||
+          'Nao foi possivel enviar o projeto para aprovacao.'
+      );
+    } finally {
+      setRequestingApproval(false);
+    }
+  }
+
+  async function confirmApproveProject() {
+    if (!progress || !projectId || !canApproveProject) {
+      return;
+    }
+
+    try {
+      setApprovingProject(true);
+      const updatedProject = await approveProject(projectId);
+
+      setProgress((current) =>
+        current
+          ? {
+              ...current,
+              projectStatus: updatedProject.status,
+              completedAt: updatedProject.completedAt ?? null,
+              freelancer: updatedProject.owner,
+              client: updatedProject.client,
+            }
+          : current
+      );
+
+      Alert.alert('Sucesso', 'Projeto aprovado com sucesso.');
+    } catch (approveError: any) {
+      Alert.alert(
+        'Erro ao aprovar projeto',
+        approveError?.response?.data?.message ||
+          'Nao foi possivel aprovar a conclusao do projeto.'
+      );
+    } finally {
+      setApprovingProject(false);
+    }
+  }
+
+  function handleApproveProject() {
+    if (!canApproveProject) {
+      return;
+    }
+
+    Alert.alert(
+      'Aprovar conclusao',
+      'Tem certeza que deseja aprovar a conclusao deste projeto?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Aprovar',
+          onPress: confirmApproveProject,
+        },
+      ]
+    );
   }
 
   if (loading) {
@@ -131,9 +285,22 @@ export default function ProjectProgressScreen() {
           <Text style={styles.heroEmail}>{progress.freelancer.email}</Text>
         ) : null}
 
+        {progress.client?.name ? (
+          <Text style={styles.heroEmail}>
+            Cliente vinculado: {progress.client.name}
+            {progress.client.email ? ` (${progress.client.email})` : ''}
+          </Text>
+        ) : null}
+
         <Text style={styles.heroSummary}>
           {progress.progressPercentage}% concluido no total do projeto.
         </Text>
+
+        {progress.completedAt ? (
+          <Text style={styles.completedAtText}>
+            Conclusao aprovada em {formatDate(progress.completedAt)}.
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.metricsGrid}>
@@ -181,6 +348,51 @@ export default function ProjectProgressScreen() {
             title="Nenhuma tarefa cadastrada"
             description="Assim que o freelancer adicionar tarefas a este projeto, o progresso detalhado aparecera aqui."
           />
+        </View>
+      ) : null}
+
+      {!roleLoading && (isFreelancer || isClient) ? (
+        <View style={styles.approvalCard}>
+          <Text style={styles.sectionTitle}>Fluxo de aprovacao</Text>
+          <Text style={styles.sectionSubtitle}>
+            {isFreelancer
+              ? 'Envie o projeto para aprovacao quando todas as tarefas estiverem concluidas.'
+              : 'Aprove a conclusao final somente quando o projeto estiver pronto para entrega.'}
+          </Text>
+
+          {isFreelancer ? (
+            <>
+              <Text style={styles.approvalHint}>{requestApprovalHint}</Text>
+              {progress.projectStatus === 'IN_PROGRESS' ? (
+                <Button
+                  title={
+                    requestingApproval
+                      ? 'Enviando para aprovacao...'
+                      : 'Solicitar aprovacao do cliente'
+                  }
+                  onPress={handleRequestApproval}
+                  disabled={!canRequestApproval || requestingApproval || approvingProject}
+                />
+              ) : null}
+            </>
+          ) : null}
+
+          {isClient ? (
+            <>
+              <Text style={styles.approvalHint}>{clientApprovalHint}</Text>
+              {progress.projectStatus === 'WAITING_CLIENT_APPROVAL' ? (
+                <Button
+                  title={
+                    approvingProject
+                      ? 'Aprovando conclusao...'
+                      : 'Aprovar conclusao do projeto'
+                  }
+                  onPress={handleApproveProject}
+                  disabled={!canApproveProject || approvingProject || requestingApproval}
+                />
+              ) : null}
+            </>
+          ) : null}
         </View>
       ) : null}
 
@@ -330,5 +542,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEF2F6',
     marginBottom: 24,
+  },
+  approvalCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#EEF2F6',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 24,
+  },
+  approvalHint: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#465465',
+    fontWeight: '600',
+  },
+  completedAtText: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#166534',
+    fontWeight: '700',
   },
 });

@@ -17,6 +17,7 @@ export interface Project {
   name: string;
   description: string;
   createdAt?: string;
+  completedAt?: string | null;
   status: ProjectStatus;
   owner: UserSummary;
   client: UserSummary | null;

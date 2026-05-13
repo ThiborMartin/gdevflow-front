@@ -11,6 +11,7 @@ interface TaskCardProps {
   busy?: boolean;
   onPress?: () => void;
   onStatusChange?: (status: TaskStatus) => void;
+  onComplete?: () => void;
   dependencyNames?: string[];
   blockedDependencyNames?: string[];
 }
@@ -21,12 +22,16 @@ export function TaskCard({
   busy,
   onPress,
   onStatusChange,
+  onComplete,
   dependencyNames,
   blockedDependencyNames,
 }: TaskCardProps) {
   const responsibleName = task.responsibleName || task.assigneeName;
   const currentStatus = normalizeTaskStatus(task.status);
   const hasBlockedDependencies = (blockedDependencyNames?.length || 0) > 0;
+  const quickStatusOptions = TASK_STATUS_OPTIONS.filter(
+    (statusOption) => statusOption.value !== 'DONE'
+  );
 
   return (
     <TouchableOpacity
@@ -75,16 +80,32 @@ export function TaskCard({
               ? 'Atualizando status...'
               : hasBlockedDependencies
                 ? 'Conclua as dependencias antes de finalizar esta tarefa'
-                : 'Toque no card para editar'}
+                : currentStatus === 'DONE'
+                  ? 'Tarefa concluida'
+                  : 'Toque no card para editar ou concluir a entrega'}
           </Text>
         ) : null}
 
+        {canManage && currentStatus !== 'DONE' ? (
+          <TouchableOpacity
+            style={[
+              styles.completeButton,
+              (busy || hasBlockedDependencies) && styles.completeButtonDisabled,
+            ]}
+            activeOpacity={0.88}
+            onPress={onComplete}
+            disabled={busy || hasBlockedDependencies}
+          >
+            <Text style={styles.completeButtonText}>
+              {busy ? 'Concluindo...' : 'Marcar como concluida'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.statusRow}>
-          {TASK_STATUS_OPTIONS.map((statusOption) => {
+          {quickStatusOptions.map((statusOption) => {
             const selected = currentStatus === statusOption.value;
-            const blockedByDependency =
-              statusOption.value === 'DONE' && hasBlockedDependencies && !selected;
-            const disabled = !canManage || busy || selected || blockedByDependency;
+            const disabled = !canManage || busy || selected;
 
             return (
               <TouchableOpacity
@@ -92,7 +113,6 @@ export function TaskCard({
                 style={[
                   styles.statusButton,
                   selected && styles.statusButtonSelected,
-                  blockedByDependency && styles.statusButtonBlocked,
                   disabled && !selected && styles.statusButtonDisabled,
                 ]}
                 activeOpacity={0.88}
@@ -182,9 +202,27 @@ const styles = StyleSheet.create({
     color: '#6B7A8B',
   },
   statusRow: {
+    marginTop: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  completeButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    backgroundColor: '#FFF4CC',
+    borderWidth: 1,
+    borderColor: '#F5D76E',
+  },
+  completeButtonDisabled: {
+    opacity: 0.7,
+  },
+  completeButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#7C5700',
   },
   statusButton: {
     borderRadius: 12,
@@ -198,10 +236,6 @@ const styles = StyleSheet.create({
   statusButtonSelected: {
     backgroundColor: '#101827',
     borderColor: '#101827',
-  },
-  statusButtonBlocked: {
-    borderColor: '#F1B5B5',
-    backgroundColor: '#FFF5F5',
   },
   statusButtonDisabled: {
     opacity: 0.7,

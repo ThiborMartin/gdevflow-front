@@ -13,13 +13,11 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { ScreenState } from '../../components/ScreenState';
 import {
-  closeProject,
   createProject,
   getProjectById,
   updateProject,
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
-import { ProjectStatus } from '../../types/project';
 
 interface ProjectFormErrors {
   name?: string;
@@ -34,7 +32,6 @@ export default function ProjectForm() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<ProjectStatus | undefined>();
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -50,7 +47,6 @@ export default function ProjectForm() {
         const project = await getProjectById(projectId);
         setName(project.name || '');
         setDescription(project.description || '');
-        setStatus(project.status);
       } catch (error: any) {
         setErrors({
           form: error?.response?.data?.message || 'Nao foi possivel carregar o projeto.',
@@ -129,35 +125,6 @@ export default function ProjectForm() {
     }
   }
 
-  function handleRequestClientApproval() {
-    Alert.alert(
-      'Solicitar aprovacao',
-      'Deseja enviar este projeto para aprovacao do cliente?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Enviar para aprovacao',
-          onPress: async () => {
-            try {
-              setSaving(true);
-              await closeProject(projectId);
-              Alert.alert('Sucesso', 'Projeto enviado para aprovacao do cliente.');
-              router.back();
-            } catch (error: any) {
-              setErrors({
-                form:
-                  error?.response?.data?.message ||
-                  'Nao foi possivel enviar o projeto para aprovacao.',
-              });
-            } finally {
-              setSaving(false);
-            }
-          },
-        },
-      ]
-    );
-  }
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -215,15 +182,6 @@ export default function ProjectForm() {
             onPress={handleSave}
             disabled={saving}
           />
-
-          {isEditMode && status === 'IN_PROGRESS' ? (
-            <Button
-              title="Solicitar aprovacao do cliente"
-              variant="secondary"
-              onPress={handleRequestClientApproval}
-              disabled={saving}
-            />
-          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

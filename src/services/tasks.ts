@@ -261,7 +261,9 @@ function normalizeProjectProgress(progress: any): ProjectProgress {
       progress?.projectDescription || progress?.description
     ),
     projectStatus: progress?.projectStatus || progress?.status || 'IN_PROGRESS',
+    completedAt: progress?.completedAt || null,
     freelancer: progress?.freelancer || progress?.owner || null,
+    client: progress?.client || null,
     progressPercentage: toNumber(
       progress?.progressPercentage ??
         progress?.completionPercentage ??

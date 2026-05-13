@@ -216,6 +216,7 @@ export default function Tasks() {
         dependencyNames={dependencyTasks.map((dependency) => dependency.title)}
         blockedDependencyNames={blockedDependencies.map((dependency) => dependency.title)}
         onPress={!roleLoading && isFreelancer ? () => openTaskForm(item.id) : undefined}
+        onComplete={() => handleStatusChange(item.id, 'DONE')}
         onStatusChange={(status) => handleStatusChange(item.id, status)}
       />
     );

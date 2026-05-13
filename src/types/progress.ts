@@ -31,7 +31,9 @@ export interface ProjectProgress {
   projectName: string;
   projectDescription: string;
   projectStatus: ProjectStatus;
+  completedAt?: string | null;
   freelancer: UserSummary | null;
+  client: UserSummary | null;
   progressPercentage: number;
   completionPercentage: number;
   totalSprints: number;
