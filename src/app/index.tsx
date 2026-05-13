@@ -9,7 +9,7 @@ export default function Index() {
       const token = await AsyncStorage.getItem('@gdevflow:token');
 
       if (token) {
-        router.replace('/(drawer)');
+        router.replace('/(drawer)/projects');
       } else {
         router.replace('/login');
       }

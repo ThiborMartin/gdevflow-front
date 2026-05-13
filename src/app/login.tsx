@@ -65,7 +65,7 @@ export default function Login() {
       await persistSession(response.data);
 
       Alert.alert('Sucesso', 'Login realizado com sucesso');
-      router.replace('/(drawer)');
+      router.replace('/(drawer)/projects');
     } catch {
       setErrors({
         form: 'Email ou senha inválidos. Verifique os dados e tente novamente.',

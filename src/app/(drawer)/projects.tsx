@@ -9,55 +9,80 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { ClientProjectCard } from '../../components/ClientProjectCard';
 import { ProjectStatusBadge } from '../../components/ProjectStatusBadge';
 import { ScreenState } from '../../components/ScreenState';
 import { useUserRole } from '../../hooks/useUserRole';
+import { getClientProjects } from '../../services/client-projects';
 import { getProjects } from '../../services/projects';
 import { theme } from '../../styles/theme';
+import { ClientProject } from '../../types/client-project';
 import { Project } from '../../types/project';
 import { formatDate } from '../../utils/date';
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [freelancerProjects, setFreelancerProjects] = useState<Project[]>([]);
+  const [clientProjects, setClientProjects] = useState<ClientProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const { isClient, loading: roleLoading } = useUserRole();
 
-  async function loadProjects(showLoader = true) {
-    try {
-      setError('');
-
-      if (showLoader) {
-        setLoading(true);
+  const loadProjects = useCallback(
+    async (showLoader = true) => {
+      if (roleLoading) {
+        return;
       }
 
-      const data = await getProjects();
-      setProjects(data);
-    } catch (loadError: any) {
-      setError(
-        loadError?.response?.data?.message ||
-          'Nao foi possivel buscar seus projetos.'
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+      try {
+        setError('');
+
+        if (showLoader) {
+          setLoading(true);
+        }
+
+        if (isClient) {
+          const data = await getClientProjects();
+          setClientProjects(data);
+          setFreelancerProjects([]);
+        } else {
+          const data = await getProjects();
+          setFreelancerProjects(data);
+          setClientProjects([]);
+        }
+      } catch (loadError: any) {
+        setError(
+          loadError?.response?.data?.message ||
+            'Nao foi possivel buscar seus projetos.'
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [isClient, roleLoading]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      loadProjects();
-    }, [])
+      if (!roleLoading) {
+        loadProjects();
+      }
+    }, [loadProjects, roleLoading])
   );
 
   async function handleRefresh() {
+    if (roleLoading) {
+      setRefreshing(false);
+      return;
+    }
+
     setRefreshing(true);
     await loadProjects(false);
   }
 
-  function openProject(project: Project) {
-    if (!roleLoading && isClient) {
+  function openProject(project: { id: number; name: string }) {
+    if (isClient) {
       router.push({
         pathname: './project-progress',
         params: {
@@ -77,7 +102,7 @@ export default function Projects() {
     });
   }
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <View style={styles.container}>
         <ScreenState loading title="Carregando projetos..." />
@@ -94,41 +119,66 @@ export default function Projects() {
     );
   }
 
+  if (isClient) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Meus Projetos</Text>
+          <Text style={styles.subtitle}>
+            Acompanhe os projetos vinculados ao seu perfil.
+          </Text>
+        </View>
+
+        <FlatList
+          data={clientProjects}
+          keyExtractor={(item) => String(item.id)}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          contentContainerStyle={
+            clientProjects.length === 0 ? styles.emptyContent : styles.listContent
+          }
+          ListEmptyComponent={
+            <ScreenState
+              title="Voce ainda nao possui projetos vinculados."
+              description="Quando um freelancer adicionar voce a um projeto, ele aparecera aqui."
+            />
+          }
+          renderItem={({ item }) => (
+            <ClientProjectCard project={item} onPress={() => openProject(item)} />
+          )}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{isClient ? 'Projetos acompanhados' : 'Meus projetos'}</Text>
+        <Text style={styles.title}>Meus projetos</Text>
         <Text style={styles.subtitle}>
-          {isClient
-            ? 'Acesse o progresso dos projetos, sprints e tarefas em tempo real.'
-            : 'Organize seus projetos e acesse as sprints de cada entrega.'}
+          Organize seus projetos e acesse as sprints de cada entrega.
         </Text>
 
-        {!roleLoading && !isClient ? (
-          <Button
-            title="Novo projeto"
-            onPress={() => router.push('/(drawer)/project-form')}
-          />
-        ) : null}
+        <Button
+          title="Novo projeto"
+          onPress={() => router.push('/(drawer)/project-form')}
+        />
       </View>
 
       <FlatList
-        data={projects}
+        data={freelancerProjects}
         keyExtractor={(item) => String(item.id)}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         contentContainerStyle={
-          projects.length === 0 ? styles.emptyContent : styles.listContent
+          freelancerProjects.length === 0 ? styles.emptyContent : styles.listContent
         }
         ListEmptyComponent={
           <ScreenState
             title="Nenhum projeto encontrado"
-            description={
-              isClient
-                ? 'Assim que um projeto for vinculado a voce, ele aparecera aqui.'
-                : 'Crie seu primeiro projeto para comecar a organizar as sprints.'
-            }
+            description="Crie seu primeiro projeto para comecar a organizar as sprints."
           />
         }
         renderItem={({ item }) => (
@@ -146,7 +196,9 @@ export default function Projects() {
               {item.description || 'Sem descricao cadastrada.'}
             </Text>
 
-            <Text style={styles.createdAt}>Criado em {formatDate(item.createdAt)}</Text>
+            <Text style={styles.createdAt}>
+              Criado em {formatDate(item.createdAt)}
+            </Text>
           </TouchableOpacity>
         )}
       />

@@ -24,7 +24,7 @@ export function useUserRole() {
     role,
     loading,
     isClient: role === 'CLIENT',
-    isFreelancer: role !== 'CLIENT',
+    isFreelancer: role === 'FREELANCER',
     reloadRole: loadRole,
   };
 }

@@ -11,6 +11,7 @@ import { MetricCard } from '../../components/MetricCard';
 import { ProgressCircle } from '../../components/ProgressCircle';
 import { ScreenState } from '../../components/ScreenState';
 import { SprintCard } from '../../components/SprintCard';
+import { useUserRole } from '../../hooks/useUserRole';
 import { getProjectById } from '../../services/projects';
 import { getProjectProgress } from '../../services/tasks';
 import { theme } from '../../styles/theme';
@@ -24,6 +25,7 @@ export default function ProjectProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const { isFreelancer, loading: roleLoading } = useUserRole();
 
   const loadProgress = useCallback(
     async (showLoader = true) => {
@@ -163,7 +165,9 @@ export default function ProjectProgressScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Sprints</Text>
         <Text style={styles.sectionSubtitle}>
-          Progresso individual de cada sprint do projeto.
+          {!roleLoading && isFreelancer
+            ? 'Progresso individual de cada sprint do projeto.'
+            : 'Resumo das sprints vinculadas a este projeto.'}
         </Text>
       </View>
 
@@ -189,22 +193,25 @@ export default function ProjectProgressScreen() {
               completedTasks: sprint.completedTasks,
             }}
             progress={sprint.progressPercentage}
-            actionLabel="Ver tarefas"
+            actionLabel={!roleLoading && isFreelancer ? 'Ver tarefas' : undefined}
             footerPrimaryText={`${sprint.totalTasks} tarefas`}
             footerSecondaryText={`${sprint.completedTasks} concluidas`}
-            onPress={() =>
-              router.push({
-                pathname: '/(drawer)/tasks',
-                params: {
-                  projectId: String(projectId),
-                  sprintId: String(sprint.id),
-                  projectName,
-                  sprintName: sprint.name,
-                  sprintStatus: sprint.status,
-                  sprintStartDate: sprint.startDate,
-                  sprintEndDate: sprint.endDate,
-                },
-              })
+            onPress={
+              !roleLoading && isFreelancer
+                ? () =>
+                    router.push({
+                      pathname: '/(drawer)/tasks',
+                      params: {
+                        projectId: String(projectId),
+                        sprintId: String(sprint.id),
+                        projectName,
+                        sprintName: sprint.name,
+                        sprintStatus: sprint.status,
+                        sprintStartDate: sprint.startDate,
+                        sprintEndDate: sprint.endDate,
+                      },
+                    })
+                : undefined
             }
           />
         ))

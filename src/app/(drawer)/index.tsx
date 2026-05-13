@@ -1,26 +1,16 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { theme } from '../../styles/theme';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { ScreenState } from '../../components/ScreenState';
 
-export default function Dashboard() {
+export default function DashboardRedirect() {
+  useEffect(() => {
+    router.replace('/(drawer)/projects');
+  }, []);
+
   return (
     <View style={styles.container}>
-
-      <View style={styles.cards}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Projetos</Text>
-          <Text style={styles.cardValue}>3 ativos</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Tarefas</Text>
-          <Text style={styles.cardValue}>12 pendentes</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Atrasos</Text>
-          <Text style={styles.cardValue}>2 tarefas</Text>
-        </View>
-      </View>
+      <ScreenState loading title="Preparando painel..." />
     </View>
   );
 }
@@ -28,32 +18,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    justifyContent: 'center',
     backgroundColor: '#F4F6F8',
-  },
-  cards: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  card: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    borderRadius: 12,
-    width: 220,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: theme.colors.muted,
-  },
-  cardValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 8,
-    color: theme.colors.text,
   },
 });

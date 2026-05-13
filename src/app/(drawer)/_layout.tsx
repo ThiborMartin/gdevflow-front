@@ -116,7 +116,7 @@ export default function DrawerLayout() {
       return;
     }
 
-    router.replace('/(drawer)');
+    router.replace('/(drawer)/projects');
   }
 
   if (loading) {
@@ -131,7 +131,7 @@ export default function DrawerLayout() {
     <Drawer
       screenOptions={({ route }) => ({
         headerRight: () => {
-          const isHomeScreen = route.name === 'index';
+          const isHomeScreen = route.name === 'index' || route.name === 'projects';
 
           if (isHomeScreen) {
             return (
@@ -153,6 +153,7 @@ export default function DrawerLayout() {
         name="index"
         options={{
           title: 'Visao Geral',
+          drawerItemStyle: { display: 'none' },
         }}
       />
       <Drawer.Screen name="projects" options={{ title: 'Projetos' }} />
