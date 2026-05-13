@@ -1,5 +1,5 @@
 import { api } from './api';
-import { ProjectProgress, SprintProgress } from '../types/progress';
+import { ProjectProgress, SprintProgress, TaskProgress } from '../types/progress';
 import {
   CreateTaskPayload,
   Task,
@@ -22,6 +22,27 @@ function toNumber(value: unknown, fallback = 0) {
 
 function normalizeText(value: unknown) {
   return typeof value === 'string' ? value : '';
+}
+
+function countTaskStatuses(tasks: TaskProgress[]) {
+  return tasks.reduce(
+    (summary, task) => {
+      const status = normalizeTaskStatus(task.status);
+
+      if (status === 'DONE') {
+        summary.done += 1;
+      } else if (status === 'IN_PROGRESS') {
+        summary.inProgress += 1;
+      } else if (status === 'BLOCKED') {
+        summary.blocked += 1;
+      } else {
+        summary.todo += 1;
+      }
+
+      return summary;
+    },
+    { todo: 0, done: 0, inProgress: 0, blocked: 0 }
+  );
 }
 
 function parseDependencyIds(value: unknown): number[] {
@@ -169,7 +190,27 @@ function normalizeTask(task: any, metadata?: TaskLocalMetadata): Task {
   };
 }
 
+function normalizeTaskProgress(task: any): TaskProgress {
+  return {
+    id: toNumber(task?.id ?? task?.taskId),
+    title: normalizeText(task?.title || task?.name),
+    description: normalizeText(task?.description || task?.details),
+    status: normalizeTaskStatus(task?.status),
+    dueDate: task?.dueDate || task?.deadline || task?.limitDate,
+  };
+}
+
 function normalizeSprintProgress(progress: any): SprintProgress {
+  const tasks = Array.isArray(progress?.tasks)
+    ? progress.tasks.map(normalizeTaskProgress)
+    : [];
+  const taskSummary = countTaskStatuses(tasks);
+  const totalTasks = toNumber(progress?.totalTasks ?? progress?.tasksTotal, tasks.length);
+  const doneTasks = toNumber(
+    progress?.doneTasks ?? progress?.completedTasks ?? progress?.tasksCompleted,
+    taskSummary.done
+  );
+
   return {
     id: toNumber(progress?.id ?? progress?.sprintId),
     name: normalizeText(progress?.name || progress?.sprintName),
@@ -179,25 +220,28 @@ function normalizeSprintProgress(progress: any): SprintProgress {
     endDate: progress?.endDate,
     progressPercentage: toNumber(
       progress?.progressPercentage ??
-        progress?.completionPercentage ??
+      progress?.completionPercentage ??
         progress?.progress ??
         progress?.percentage
     ),
-    totalTasks: toNumber(progress?.totalTasks ?? progress?.tasksTotal),
-    completedTasks: toNumber(
-      progress?.completedTasks ?? progress?.doneTasks ?? progress?.tasksCompleted
-    ),
+    totalTasks,
+    doneTasks,
+    completedTasks: doneTasks,
     inProgressTasks: toNumber(
       progress?.inProgressTasks ??
         progress?.doingTasks ??
-        progress?.tasksInProgress
+        progress?.tasksInProgress,
+      taskSummary.inProgress
     ),
     pendingTasks: toNumber(
-      progress?.pendingTasks ?? progress?.todoTasks ?? progress?.tasksPending
+      progress?.pendingTasks ?? progress?.todoTasks ?? progress?.tasksPending,
+      taskSummary.todo
     ),
     blockedTasks: toNumber(
-      progress?.blockedTasks ?? progress?.tasksBlocked ?? progress?.impededTasks
+      progress?.blockedTasks ?? progress?.tasksBlocked ?? progress?.impededTasks,
+      taskSummary.blocked
     ),
+    tasks,
   };
 }
 
@@ -213,6 +257,17 @@ function normalizeProjectProgress(progress: any): ProjectProgress {
   return {
     projectId: toNumber(progress?.projectId ?? progress?.id),
     projectName: normalizeText(progress?.projectName || progress?.name),
+    projectDescription: normalizeText(
+      progress?.projectDescription || progress?.description
+    ),
+    projectStatus: progress?.projectStatus || progress?.status || 'IN_PROGRESS',
+    freelancer: progress?.freelancer || progress?.owner || null,
+    progressPercentage: toNumber(
+      progress?.progressPercentage ??
+        progress?.completionPercentage ??
+        progress?.progress ??
+        progress?.percentage
+    ),
     completionPercentage: toNumber(
       progress?.completionPercentage ??
         progress?.progressPercentage ??
@@ -221,6 +276,12 @@ function normalizeProjectProgress(progress: any): ProjectProgress {
     ),
     totalSprints: toNumber(progress?.totalSprints ?? sprints.length),
     totalTasks: toNumber(progress?.totalTasks ?? progress?.tasksTotal),
+    todoTasks: toNumber(
+      progress?.todoTasks ?? progress?.pendingTasks ?? progress?.tasksPending
+    ),
+    doneTasks: toNumber(
+      progress?.doneTasks ?? progress?.completedTasks ?? progress?.tasksCompleted
+    ),
     completedTasks: toNumber(
       progress?.completedTasks ?? progress?.doneTasks ?? progress?.tasksCompleted
     ),

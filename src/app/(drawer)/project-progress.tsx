@@ -7,21 +7,21 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Button } from '../../components/Button';
 import { MetricCard } from '../../components/MetricCard';
 import { ProgressCircle } from '../../components/ProgressCircle';
+import { ProjectStatusBadge } from '../../components/ProjectStatusBadge';
 import { ScreenState } from '../../components/ScreenState';
-import { SprintCard } from '../../components/SprintCard';
+import { SprintProgressCard } from '../../components/SprintProgressCard';
 import { useUserRole } from '../../hooks/useUserRole';
-import { getProjectById } from '../../services/projects';
 import { getProjectProgress } from '../../services/tasks';
 import { theme } from '../../styles/theme';
 import { ProjectProgress } from '../../types/progress';
 
 export default function ProjectProgressScreen() {
-  const params = useLocalSearchParams<{ projectId?: string; projectName?: string }>();
+  const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = useMemo(() => Number(params.projectId), [params.projectId]);
   const [progress, setProgress] = useState<ProjectProgress | null>(null);
-  const [projectName, setProjectName] = useState(params.projectName || '');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -43,13 +43,8 @@ export default function ProjectProgressScreen() {
           setLoading(true);
         }
 
-        const [progressData, projectData] = await Promise.all([
-          getProjectProgress(projectId),
-          getProjectById(projectId).catch(() => null),
-        ]);
-
+        const progressData = await getProjectProgress(projectId);
         setProgress(progressData);
-        setProjectName(progressData.projectName || projectData?.name || params.projectName || '');
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
@@ -60,7 +55,7 @@ export default function ProjectProgressScreen() {
         setRefreshing(false);
       }
     },
-    [params.projectName, projectId]
+    [projectId]
   );
 
   useFocusEffect(
@@ -86,6 +81,9 @@ export default function ProjectProgressScreen() {
     return (
       <View style={styles.container}>
         <ScreenState title="Erro ao carregar progresso" description={error} />
+        <View style={styles.retryWrapper}>
+          <Button title="Tentar novamente" onPress={() => loadProgress()} />
+        </View>
       </View>
     );
   }
@@ -110,47 +108,62 @@ export default function ProjectProgressScreen() {
       }
     >
       <View style={styles.heroCard}>
-        <View style={styles.heroRow}>
+        <View style={styles.heroHeader}>
           <View style={styles.heroTextBlock}>
-            <Text style={styles.eyebrow}>PROJECT DASHBOARD</Text>
-            <Text style={styles.title}>{projectName || 'Projeto selecionado'}</Text>
+            <Text style={styles.eyebrow}>PAINEL DO PROJETO</Text>
+            <Text style={styles.title}>{progress.projectName || 'Projeto selecionado'}</Text>
             <Text style={styles.subtitle}>
-              Acompanhe a evolucao das sprints e das tarefas em um unico lugar.
+              {progress.projectDescription || 'Sem descricao cadastrada para este projeto.'}
             </Text>
           </View>
 
-          <ProgressCircle value={progress.completionPercentage} label="Concluido" />
+          <ProgressCircle value={progress.progressPercentage} label="Concluido" size={112} />
         </View>
+
+        <View style={styles.heroMetaRow}>
+          <ProjectStatusBadge status={progress.projectStatus} />
+          <Text style={styles.heroMetaText}>
+            Freelancer: {progress.freelancer?.name || 'Nao informado'}
+          </Text>
+        </View>
+
+        {progress.freelancer?.email ? (
+          <Text style={styles.heroEmail}>{progress.freelancer.email}</Text>
+        ) : null}
+
+        <Text style={styles.heroSummary}>
+          {progress.progressPercentage}% concluido no total do projeto.
+        </Text>
       </View>
 
       <View style={styles.metricsGrid}>
         <MetricCard
           label="Total de sprints"
           value={progress.totalSprints}
-          helper="Ciclos do projeto"
+          helper="Ciclos planejados"
           accentColor={theme.colors.primary}
         />
         <MetricCard
           label="Total de tarefas"
           value={progress.totalTasks}
-          helper="Backlog geral"
+          helper="Backlog do projeto"
           accentColor="#111827"
         />
         <MetricCard
           label="Concluidas"
-          value={progress.completedTasks}
+          value={progress.doneTasks}
           helper="Entregas finalizadas"
           accentColor="#16A34A"
         />
         <MetricCard
           label="Em andamento"
           value={progress.inProgressTasks}
-          helper="Itens em execucao"
+          helper="Execucao ativa"
           accentColor="#2563EB"
         />
         <MetricCard
           label="Pendentes"
-          value={progress.pendingTasks}
+          value={progress.todoTasks}
           helper="Ainda nao iniciadas"
           accentColor="#7C3AED"
         />
@@ -162,12 +175,21 @@ export default function ProjectProgressScreen() {
         />
       </View>
 
+      {progress.totalTasks === 0 ? (
+        <View style={styles.emptyWrapper}>
+          <ScreenState
+            title="Nenhuma tarefa cadastrada"
+            description="Assim que o freelancer adicionar tarefas a este projeto, o progresso detalhado aparecera aqui."
+          />
+        </View>
+      ) : null}
+
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Sprints</Text>
+        <Text style={styles.sectionTitle}>Sprints do projeto</Text>
         <Text style={styles.sectionSubtitle}>
           {!roleLoading && isFreelancer
-            ? 'Progresso individual de cada sprint do projeto.'
-            : 'Resumo das sprints vinculadas a este projeto.'}
+            ? 'Acompanhe o progresso de cada sprint e abra as tarefas quando precisar.'
+            : 'Acompanhe cada sprint e o status das tarefas vinculadas.'}
         </Text>
       </View>
 
@@ -175,27 +197,15 @@ export default function ProjectProgressScreen() {
         <View style={styles.emptyWrapper}>
           <ScreenState
             title="Nenhuma sprint encontrada"
-            description="Assim que as sprints forem criadas, o dashboard exibira o progresso aqui."
+            description="Assim que as sprints forem criadas, o projeto exibira o andamento detalhado aqui."
           />
         </View>
       ) : (
         progress.sprints.map((sprint) => (
-          <SprintCard
+          <SprintProgressCard
             key={sprint.id}
-            sprint={{
-              id: sprint.id,
-              name: sprint.name,
-              description: sprint.description,
-              startDate: sprint.startDate || '',
-              endDate: sprint.endDate || '',
-              status: sprint.status || 'PLANNED',
-              totalTasks: sprint.totalTasks,
-              completedTasks: sprint.completedTasks,
-            }}
-            progress={sprint.progressPercentage}
+            sprint={sprint}
             actionLabel={!roleLoading && isFreelancer ? 'Ver tarefas' : undefined}
-            footerPrimaryText={`${sprint.totalTasks} tarefas`}
-            footerSecondaryText={`${sprint.completedTasks} concluidas`}
             onPress={
               !roleLoading && isFreelancer
                 ? () =>
@@ -204,7 +214,7 @@ export default function ProjectProgressScreen() {
                       params: {
                         projectId: String(projectId),
                         sprintId: String(sprint.id),
-                        projectName,
+                        projectName: progress.projectName,
                         sprintName: sprint.name,
                         sprintStatus: sprint.status,
                         sprintStartDate: sprint.startDate,
@@ -225,6 +235,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F6F8',
   },
+  retryWrapper: {
+    paddingHorizontal: 24,
+  },
   content: {
     padding: 20,
     paddingBottom: 40,
@@ -241,7 +254,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 24,
   },
-  heroRow: {
+  heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 18,
@@ -266,6 +279,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: '#465465',
+  },
+  heroMetaRow: {
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  heroMetaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  heroEmail: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#64748B',
+  },
+  heroSummary: {
+    marginTop: 14,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -293,5 +329,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#EEF2F6',
+    marginBottom: 24,
   },
 });

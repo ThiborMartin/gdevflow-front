@@ -9,7 +9,7 @@ const statusLabels: Record<string, string> = {
   ACTIVE: 'Ativo',
   OPEN: 'Aberto',
   IN_PROGRESS: 'Em andamento',
-  PLANNED: 'Planejado',
+  PLANNED: 'Planejada',
   TODO: 'A fazer',
   PENDING: 'A fazer',
   DONE: 'Concluida',
