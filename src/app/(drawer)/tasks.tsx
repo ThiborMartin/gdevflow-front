@@ -17,7 +17,7 @@ import { ScreenState } from '../../components/ScreenState';
 import { TaskCard } from '../../components/TaskCard';
 import { useUserRole } from '../../hooks/useUserRole';
 import { getProjectById, getSprintById } from '../../services/projects';
-import { getSprintTasks, updateTaskStatus } from '../../services/tasks';
+import { completeTask, getSprintTasks, updateTaskStatus } from '../../services/tasks';
 import { theme } from '../../styles/theme';
 import { Task, TaskStatus } from '../../types/task';
 import {
@@ -179,13 +179,20 @@ export default function Tasks() {
 
     try {
       setActionTaskId(taskId);
-      const updatedTask = await updateTaskStatus(taskId, status);
+      const updatedTask =
+        status === 'DONE'
+          ? await completeTask(taskId)
+          : await updateTaskStatus(taskId, status);
 
       setTasks((currentTasks) =>
         currentTasks.map((task) =>
           task.id === taskId ? { ...task, ...updatedTask, status: updatedTask.status } : task
         )
       );
+
+      if (status === 'DONE') {
+        Alert.alert('Sucesso', 'Tarefa concluida com sucesso.');
+      }
     } catch (statusError: any) {
       Alert.alert(
         'Erro ao atualizar status',

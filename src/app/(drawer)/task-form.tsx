@@ -441,20 +441,32 @@ export default function TaskForm() {
       return;
     }
 
-    if (normalizeTaskStatus(status) === 'DONE' && !ensureCompletionAllowed()) {
+    const normalizedStatus = normalizeTaskStatus(status);
+
+    if (normalizedStatus === 'DONE' && !ensureCompletionAllowed()) {
       return;
     }
 
     try {
       setStatusSaving(true);
       setFormError('');
-      const updatedTask = await updateTaskStatus(taskId, status);
+      const updatedTask =
+        normalizedStatus === 'DONE'
+          ? await completeTask(taskId)
+          : await updateTaskStatus(taskId, status);
       setStatus(updatedTask.status || status);
-      Alert.alert('Sucesso', 'Status atualizado com sucesso.');
+      Alert.alert(
+        'Sucesso',
+        normalizedStatus === 'DONE'
+          ? 'Tarefa concluida com sucesso.'
+          : 'Status atualizado com sucesso.'
+      );
     } catch (statusError: any) {
       const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
         statusError,
-        'Nao foi possivel atualizar o status da tarefa.'
+        normalizedStatus === 'DONE'
+          ? 'Nao foi possivel concluir a tarefa.'
+          : 'Nao foi possivel atualizar o status da tarefa.'
       );
 
       setErrors((currentErrors) => ({
