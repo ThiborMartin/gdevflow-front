@@ -14,9 +14,9 @@ import { Button } from '../../components/Button';
 import { ClientSearchBox } from '../../components/ClientSearchBox';
 import { MetricCard } from '../../components/MetricCard';
 import { ProgressCircle } from '../../components/ProgressCircle';
+import { ProjectStatusBadge } from '../../components/ProjectStatusBadge';
 import { ScreenState } from '../../components/ScreenState';
 import { SprintCard } from '../../components/SprintCard';
-import { StatusBadge } from '../../components/StatusBadge';
 import { useUserRole } from '../../hooks/useUserRole';
 import { assignClientToProject, getProjectById, getProjectSprints } from '../../services/projects';
 import { getProjectProgress } from '../../services/tasks';
@@ -134,8 +134,8 @@ export default function ProjectDetails() {
     };
   }, [mergedSprints, progress]);
 
-  const projectClosed = project?.closed || project?.status?.toUpperCase() === 'CLOSED';
-  const projectHasClient = Boolean(project?.clientId);
+  const projectLocked = project?.status !== 'IN_PROGRESS';
+  const projectHasClient = Boolean(project?.client);
 
   const loadProjectData = useCallback(
     async (showLoader = true) => {
@@ -291,7 +291,7 @@ export default function ProjectDetails() {
             <Text style={styles.heroEyebrow}>WORKSPACE DO PROJETO</Text>
             <Text style={styles.heroTitle}>{project.name}</Text>
             <View style={styles.statusRow}>
-              <StatusBadge status={project.status} />
+              <ProjectStatusBadge status={project.status} />
               <Text style={styles.createdAt}>Criado em {formatDate(project.createdAt)}</Text>
             </View>
           </View>
@@ -376,9 +376,9 @@ export default function ProjectDetails() {
           ) : null}
         </View>
 
-        {projectClosed && !roleLoading && isFreelancer ? (
+        {projectLocked && !roleLoading && isFreelancer ? (
           <Text style={styles.closedNotice}>
-            Projeto encerrado. Novas sprints estao bloqueadas.
+            Este projeto nao esta mais em andamento. Novas sprints ficam bloqueadas ate a proxima etapa do fluxo.
           </Text>
         ) : null}
 
@@ -400,9 +400,9 @@ export default function ProjectDetails() {
 
             <View style={styles.clientSummaryCard}>
               <Text style={styles.clientSummaryLabel}>Cliente vinculado</Text>
-              <Text style={styles.clientSummaryName}>{project.clientName}</Text>
+              <Text style={styles.clientSummaryName}>{project.client?.name}</Text>
               <Text style={styles.clientSummaryEmail}>
-                {project.clientEmail || 'Email nao disponivel'}
+                {project.client?.email || 'Email nao disponivel'}
               </Text>
             </View>
           </>
@@ -449,7 +449,7 @@ export default function ProjectDetails() {
             <TouchableOpacity
               style={[
                 styles.createSprintButton,
-                projectClosed && styles.createSprintButtonDisabled,
+                projectLocked && styles.createSprintButtonDisabled,
               ]}
               activeOpacity={0.88}
               onPress={() =>
@@ -458,7 +458,7 @@ export default function ProjectDetails() {
                   params: { projectId: project.id },
                 })
               }
-              disabled={projectClosed}
+              disabled={projectLocked}
             >
               <Text style={styles.createSprintButtonText}>Criar sprint</Text>
             </TouchableOpacity>

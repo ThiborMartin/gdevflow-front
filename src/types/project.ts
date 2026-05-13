@@ -1,7 +1,15 @@
-export interface ProjectUserSummary {
+import { UserRole } from './auth';
+
+export type ProjectStatus =
+  | 'IN_PROGRESS'
+  | 'WAITING_CLIENT_APPROVAL'
+  | 'COMPLETED';
+
+export interface UserSummary {
   id: number;
   name: string;
   email: string;
+  role: UserRole;
 }
 
 export interface Project {
@@ -9,16 +17,9 @@ export interface Project {
   name: string;
   description: string;
   createdAt?: string;
-  status?: string;
-  closed?: boolean;
-  owner?: ProjectUserSummary | null;
-  client?: ProjectUserSummary | null;
-  ownerId?: number | null;
-  ownerName?: string | null;
-  ownerEmail?: string | null;
-  clientId?: number | null;
-  clientName?: string | null;
-  clientEmail?: string | null;
+  status: ProjectStatus;
+  owner: UserSummary;
+  client: UserSummary | null;
 }
 
 export interface Sprint {

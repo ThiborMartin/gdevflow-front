@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { ProjectStatusBadge } from '../../components/ProjectStatusBadge';
 import { ScreenState } from '../../components/ScreenState';
-import { StatusBadge } from '../../components/StatusBadge';
 import { useUserRole } from '../../hooks/useUserRole';
 import { getProjects } from '../../services/projects';
 import { theme } from '../../styles/theme';
@@ -139,7 +139,7 @@ export default function Projects() {
           >
             <View style={styles.cardHeader}>
               <Text style={styles.projectName}>{item.name}</Text>
-              <StatusBadge status={item.status} />
+              <ProjectStatusBadge status={item.status} />
             </View>
 
             <Text style={styles.description} numberOfLines={2}>

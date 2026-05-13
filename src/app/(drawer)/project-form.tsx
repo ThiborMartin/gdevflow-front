@@ -19,6 +19,7 @@ import {
   updateProject,
 } from '../../services/projects';
 import { theme } from '../../styles/theme';
+import { ProjectStatus } from '../../types/project';
 
 interface ProjectFormErrors {
   name?: string;
@@ -33,7 +34,7 @@ export default function ProjectForm() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<string | undefined>();
+  const [status, setStatus] = useState<ProjectStatus | undefined>();
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -128,24 +129,25 @@ export default function ProjectForm() {
     }
   }
 
-  function handleCloseProject() {
+  function handleRequestClientApproval() {
     Alert.alert(
-      'Encerrar projeto',
-      'Tem certeza que deseja encerrar este projeto?',
+      'Solicitar aprovacao',
+      'Deseja enviar este projeto para aprovacao do cliente?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Encerrar',
-          style: 'destructive',
+          text: 'Enviar para aprovacao',
           onPress: async () => {
             try {
               setSaving(true);
               await closeProject(projectId);
-              Alert.alert('Sucesso', 'Projeto encerrado com sucesso.');
+              Alert.alert('Sucesso', 'Projeto enviado para aprovacao do cliente.');
               router.back();
             } catch (error: any) {
               setErrors({
-                form: error?.response?.data?.message || 'Nao foi possivel encerrar o projeto.',
+                form:
+                  error?.response?.data?.message ||
+                  'Nao foi possivel enviar o projeto para aprovacao.',
               });
             } finally {
               setSaving(false);
@@ -214,11 +216,11 @@ export default function ProjectForm() {
             disabled={saving}
           />
 
-          {isEditMode && status?.toUpperCase() !== 'CLOSED' ? (
+          {isEditMode && status === 'IN_PROGRESS' ? (
             <Button
-              title="Encerrar projeto"
-              variant="danger"
-              onPress={handleCloseProject}
+              title="Solicitar aprovacao do cliente"
+              variant="secondary"
+              onPress={handleRequestClientApproval}
               disabled={saving}
             />
           ) : null}

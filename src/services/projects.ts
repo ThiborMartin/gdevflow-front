@@ -2,27 +2,11 @@ import { api } from "./api";
 import { Project, ProjectPayload, Sprint, SprintPayload } from "../types/project";
 
 function normalizeProject(project: Project): Project {
-  const rawProject = project as Project & {
-    closed?: boolean;
-    owner?: { id?: number; name?: string; email?: string };
-    client?: { id?: number; name?: string; email?: string };
-  };
-
-  const status =
-    project.status ||
-    (rawProject.closed ? "CLOSED" : "ACTIVE");
-
   return {
     ...project,
     description: project.description || "",
-    status,
-    closed: rawProject.closed ?? status === "CLOSED",
-    ownerId: project.ownerId ?? rawProject.owner?.id ?? null,
-    ownerName: project.ownerName ?? rawProject.owner?.name ?? null,
-    ownerEmail: project.ownerEmail ?? rawProject.owner?.email ?? null,
-    clientId: project.clientId ?? rawProject.client?.id ?? null,
-    clientName: project.clientName ?? rawProject.client?.name ?? null,
-    clientEmail: project.clientEmail ?? rawProject.client?.email ?? null,
+    owner: project.owner,
+    client: project.client ?? null,
   };
 }
 
