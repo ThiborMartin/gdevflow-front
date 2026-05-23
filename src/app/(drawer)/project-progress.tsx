@@ -2,6 +2,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -84,8 +85,7 @@ export default function ProjectProgressScreen() {
   const canApproveProject =
     !roleLoading &&
     isClient &&
-    progress?.projectStatus === 'WAITING_CLIENT_APPROVAL' &&
-    allTasksDone;
+    progress?.projectStatus === 'WAITING_CLIENT_APPROVAL';
 
   const requestApprovalHint = useMemo(() => {
     if (!progress || roleLoading || !isFreelancer) {
@@ -207,6 +207,18 @@ export default function ProjectProgressScreen() {
 
   function handleApproveProject() {
     if (!canApproveProject) {
+      return;
+    }
+
+    if (Platform.OS === 'web' && typeof globalThis.confirm === 'function') {
+      const confirmed = globalThis.confirm(
+        'Tem certeza que deseja aprovar a conclusao deste projeto?'
+      );
+
+      if (confirmed) {
+        void confirmApproveProject();
+      }
+
       return;
     }
 
@@ -388,13 +400,39 @@ export default function ProjectProgressScreen() {
                       : 'Aprovar conclusao do projeto'
                   }
                   onPress={handleApproveProject}
-                  disabled={!canApproveProject || approvingProject || requestingApproval}
+                  disabled={approvingProject || requestingApproval}
                 />
               ) : null}
             </>
           ) : null}
         </View>
       ) : null}
+
+      <View style={styles.approvalCard}>
+        <Text style={styles.sectionTitle}>Chat do projeto</Text>
+        <Text style={styles.sectionSubtitle}>
+          Converse sobre alinhamentos, feedbacks e combinados diretamente neste projeto.
+        </Text>
+        <Text style={styles.approvalHint}>
+          {progress.client
+            ? 'Use o chat para manter o historico da comunicacao entre freelancer e cliente.'
+            : 'Vincule um cliente ao projeto para liberar a conversa.'}
+        </Text>
+        <Button
+          title="Abrir chat"
+          variant="secondary"
+          onPress={() =>
+            router.push({
+              pathname: './project-chat',
+              params: {
+                projectId: String(projectId),
+                projectName: progress.projectName,
+              },
+            })
+          }
+          disabled={!progress.client}
+        />
+      </View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Sprints do projeto</Text>

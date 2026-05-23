@@ -362,6 +362,18 @@ export default function ProjectDetails() {
             }
           />
 
+          <Button
+            title="Abrir chat"
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: './project-chat',
+                params: { projectId: project.id, projectName: project.name },
+              })
+            }
+            disabled={!projectHasClient}
+          />
+
           {!roleLoading && isFreelancer ? (
             <Button
               title="Editar projeto"

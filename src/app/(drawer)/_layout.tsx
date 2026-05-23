@@ -206,6 +206,13 @@ export default function DrawerLayout() {
           drawerItemStyle: { display: 'none' },
         }}
       />
+      <Drawer.Screen
+        name="project-chat"
+        options={{
+          title: 'Chat do projeto',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
     </Drawer>
   );
 }
