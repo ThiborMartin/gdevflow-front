@@ -8,8 +8,8 @@ interface ProjectStatusBadgeProps {
 
 const statusLabels: Record<string, string> = {
   IN_PROGRESS: 'Em andamento',
-  WAITING_CLIENT_APPROVAL: 'Aguardando aprovacao',
-  COMPLETED: 'Concluido',
+  WAITING_CLIENT_APPROVAL: 'Aguardando aprovação',
+  COMPLETED: 'Concluído',
 };
 
 const statusColors: Record<string, { bg: string; text: string }> = {

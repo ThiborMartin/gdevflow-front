@@ -35,7 +35,7 @@ export function SprintCard({
   const rightFooterText =
     footerSecondaryText ||
     (typeof sprint.completedTasks === 'number'
-      ? `${sprint.completedTasks} concluidas`
+      ? `${sprint.completedTasks} concluídas`
       : 'Acompanhamento em tempo real');
   const hasPrimaryAction = Boolean(actionLabel && onPress);
   const hasSecondaryAction = Boolean(
@@ -55,7 +55,7 @@ export function SprintCard({
       <Text style={styles.period}>{formatPeriod(sprint.startDate, sprint.endDate)}</Text>
 
       <Text style={styles.description} numberOfLines={2}>
-        {description || 'Sem descricao cadastrada.'}
+        {description || 'Sem descrição cadastrada.'}
       </Text>
 
       <View style={styles.progressHeader}>

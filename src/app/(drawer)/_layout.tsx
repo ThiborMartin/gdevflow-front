@@ -152,7 +152,7 @@ export default function DrawerLayout() {
       <Drawer.Screen
         name="index"
         options={{
-          title: 'Visao Geral',
+          title: 'Visão Geral',
           drawerItemStyle: { display: 'none' },
         }}
       />

@@ -27,7 +27,7 @@ import { formatDate, getDatePickerValue, toApiDate } from '../../utils/date';
 const sprintStatuses = [
   { label: 'Planejada', value: 'PLANNED' },
   { label: 'Em andamento', value: 'IN_PROGRESS' },
-  { label: 'Concluida', value: 'DONE' },
+  { label: 'Concluída', value: 'DONE' },
   { label: 'Cancelada', value: 'CANCELLED' },
 ];
 
@@ -56,18 +56,18 @@ function getSprintApiErrorMessage(error: any, isEditMode: boolean) {
   const normalizedMessage = normalizeErrorMessage(apiMessage);
 
   if (normalizedMessage.includes(duplicateSprintNameKey)) {
-    return 'Ja existe uma sprint com esse nome neste projeto. Escolha outro nome para continuar.';
+    return 'Já existe uma sprint com esse nome neste projeto. Escolha outro nome para continuar.';
   }
 
   if (normalizedMessage.includes(invalidSprintPeriodKey)) {
-    return 'A data final precisa ser igual ou posterior a data inicial.';
+    return 'A data final precisa ser igual ou posterior à data inicial.';
   }
 
   return (
     apiMessage ||
     (isEditMode
-      ? 'Nao foi possivel atualizar a sprint.'
-      : 'Nao foi possivel salvar a sprint.')
+      ? 'Não foi possível atualizar a sprint.'
+      : 'Não foi possível salvar a sprint.')
   );
 }
 
@@ -112,7 +112,7 @@ export default function SprintForm() {
       } catch (error: any) {
         Alert.alert(
           'Erro ao carregar sprint',
-          error?.response?.data?.message || 'Nao foi possivel carregar a sprint.'
+          error?.response?.data?.message || 'Não foi possível carregar a sprint.'
         );
       } finally {
         setLoading(false);
@@ -134,13 +134,13 @@ export default function SprintForm() {
     }
 
     if (!trimmedDescription) {
-      nextErrors.description = 'Informe a descricao da sprint.';
+      nextErrors.description = 'Informe a descrição da sprint.';
     } else if (trimmedDescription.length < 10) {
-      nextErrors.description = 'A descricao deve ter pelo menos 10 caracteres.';
+      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
     }
 
     if (!startDate) {
-      nextErrors.startDate = 'Selecione a data de inicio.';
+      nextErrors.startDate = 'Selecione a data de início.';
     }
 
     if (!endDate) {
@@ -148,7 +148,7 @@ export default function SprintForm() {
     }
 
     if (startDate && endDate && startDate > endDate) {
-      nextErrors.endDate = 'A data de fim deve ser igual ou posterior a data de inicio.';
+      nextErrors.endDate = 'A data de fim deve ser igual ou posterior à data de início.';
     }
 
     if (!status) {
@@ -195,8 +195,8 @@ export default function SprintForm() {
 
     if (!projectId) {
       Alert.alert(
-        'Projeto invalido',
-        'Nao foi possivel identificar o projeto da sprint.'
+        'Projeto inválido',
+        'Não foi possível identificar o projeto da sprint.'
       );
       return;
     }
@@ -275,7 +275,7 @@ export default function SprintForm() {
                 style={styles.closePickerButton}
                 onPress={() => setActivePicker(null)}
               >
-                <Text style={styles.closePickerText}>Fechar calendario</Text>
+                <Text style={styles.closePickerText}>Fechar calendário</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -306,7 +306,7 @@ export default function SprintForm() {
           {isEditMode ? 'Editar sprint' : 'Nova sprint'}
         </Text>
         <Text style={styles.subtitle}>
-          Cadastre o periodo, descricao e status da sprint dentro do projeto.
+          Cadastre o período, a descrição e o status da sprint dentro do projeto.
         </Text>
 
         <View style={styles.card}>
@@ -321,7 +321,7 @@ export default function SprintForm() {
             error={errors.name}
           />
 
-          <Text style={styles.label}>Descricao</Text>
+          <Text style={styles.label}>Descrição</Text>
           <Input
             placeholder="Descreva o objetivo da sprint"
             value={description}
@@ -334,7 +334,7 @@ export default function SprintForm() {
             error={errors.description}
           />
 
-          {renderDateField('Data de inicio', 'startDate', startDate, errors.startDate)}
+          {renderDateField('Data de início', 'startDate', startDate, errors.startDate)}
           {renderDateField('Data de fim', 'endDate', endDate, errors.endDate)}
 
           <Text style={styles.label}>Status</Text>

@@ -37,7 +37,7 @@ function decodeBase64Url(value: string) {
     return bufferApi.from(base64Value, 'base64').toString('utf-8');
   }
 
-  throw new Error('Nao foi possivel decodificar o token.');
+  throw new Error('Não foi possível decodificar o token.');
 }
 
 function readRoleCandidate(source: any): UserRole {
@@ -114,7 +114,7 @@ export async function persistSession(data: any) {
   const token = data?.token;
 
   if (!token) {
-    throw new Error('Resposta de autenticacao sem token.');
+    throw new Error('Resposta de autenticação sem token.');
   }
 
   const roleFromResponse = readRoleCandidate(data);

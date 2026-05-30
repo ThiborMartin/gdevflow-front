@@ -53,7 +53,7 @@ export default function Projects() {
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel buscar seus projetos.'
+            'Não foi possível buscar seus projetos.'
         );
       } finally {
         setLoading(false);
@@ -140,8 +140,8 @@ export default function Projects() {
           }
           ListEmptyComponent={
             <ScreenState
-              title="Voce ainda nao possui projetos vinculados."
-              description="Quando um freelancer adicionar voce a um projeto, ele aparecera aqui."
+              title="Você ainda não possui projetos vinculados."
+              description="Quando um freelancer adicionar você a um projeto, ele aparecerá aqui."
             />
           }
           renderItem={({ item }) => (
@@ -178,7 +178,7 @@ export default function Projects() {
         ListEmptyComponent={
           <ScreenState
             title="Nenhum projeto encontrado"
-            description="Crie seu primeiro projeto para comecar a organizar as sprints."
+            description="Crie seu primeiro projeto para começar a organizar as sprints."
           />
         }
         renderItem={({ item }) => (
@@ -193,7 +193,7 @@ export default function Projects() {
             </View>
 
             <Text style={styles.description} numberOfLines={2}>
-              {item.description || 'Sem descricao cadastrada.'}
+              {item.description || 'Sem descrição cadastrada.'}
             </Text>
 
             <Text style={styles.createdAt}>

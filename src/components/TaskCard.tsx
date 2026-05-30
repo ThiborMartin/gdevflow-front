@@ -50,7 +50,7 @@ export function TaskCard({
       </View>
 
       <Text style={styles.description} numberOfLines={2}>
-        {task.description || 'Sem descricao cadastrada.'}
+        {task.description || 'Sem descrição cadastrada.'}
       </Text>
 
       <View style={styles.metaRow}>
@@ -59,7 +59,7 @@ export function TaskCard({
           <Text style={styles.metaText}>Data limite: {formatDate(task.dueDate)}</Text>
         ) : null}
         {responsibleName ? (
-          <Text style={styles.metaText}>Responsavel: {responsibleName}</Text>
+          <Text style={styles.metaText}>Responsável: {responsibleName}</Text>
         ) : null}
         {dependencyNames?.length ? (
           <Text style={styles.metaText}>
@@ -68,7 +68,7 @@ export function TaskCard({
         ) : null}
         {hasBlockedDependencies ? (
           <Text style={styles.blockedText}>
-            Conclusao bloqueada por: {blockedDependencyNames?.join(', ')}
+            Conclusão bloqueada por: {blockedDependencyNames?.join(', ')}
           </Text>
         ) : null}
       </View>
@@ -79,9 +79,9 @@ export function TaskCard({
             {busy
               ? 'Atualizando status...'
               : hasBlockedDependencies
-                ? 'Conclua as dependencias antes de finalizar esta tarefa'
+                ? 'Conclua as dependências antes de finalizar esta tarefa'
                 : currentStatus === 'DONE'
-                  ? 'Tarefa concluida'
+                  ? 'Tarefa concluída'
                   : 'Toque no card para editar ou concluir a entrega'}
           </Text>
         ) : null}
@@ -97,7 +97,7 @@ export function TaskCard({
             disabled={busy || hasBlockedDependencies}
           >
             <Text style={styles.completeButtonText}>
-              {busy ? 'Concluindo...' : 'Marcar como concluida'}
+              {busy ? 'Concluindo...' : 'Marcar como concluída'}
             </Text>
           </TouchableOpacity>
         ) : null}

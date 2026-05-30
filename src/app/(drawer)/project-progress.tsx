@@ -36,7 +36,7 @@ export default function ProjectProgressScreen() {
   const loadProgress = useCallback(
     async (showLoader = true) => {
       if (!projectId) {
-        setError('Projeto invalido para carregar o progresso.');
+        setError('Projeto inválido para carregar o progresso.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -54,7 +54,7 @@ export default function ProjectProgressScreen() {
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel carregar o progresso do projeto.'
+            'Não foi possível carregar o progresso do projeto.'
         );
       } finally {
         setLoading(false);
@@ -93,28 +93,28 @@ export default function ProjectProgressScreen() {
     }
 
     if (progress.projectStatus === 'WAITING_CLIENT_APPROVAL') {
-      return 'Projeto enviado para o cliente. Agora basta aguardar a aprovacao final.';
+      return 'Projeto enviado para o cliente. Agora basta aguardar a aprovação final.';
     }
 
     if (progress.projectStatus === 'COMPLETED') {
       return progress.completedAt
-        ? `Projeto concluido em ${formatDate(progress.completedAt)}.`
-        : 'Projeto ja concluido com aprovacao do cliente.';
+        ? `Projeto concluído em ${formatDate(progress.completedAt)}.`
+        : 'Projeto já concluído com aprovação do cliente.';
     }
 
     if (!progress.client) {
-      return 'Vincule um cliente ao projeto antes de solicitar aprovacao.';
+      return 'Vincule um cliente ao projeto antes de solicitar aprovação.';
     }
 
     if (progress.totalTasks === 0) {
-      return 'Cadastre pelo menos uma tarefa antes de solicitar aprovacao.';
+      return 'Cadastre pelo menos uma tarefa antes de solicitar aprovação.';
     }
 
     if (!allTasksDone) {
-      return 'Conclua todas as tarefas para solicitar aprovacao.';
+      return 'Conclua todas as tarefas para solicitar aprovação.';
     }
 
-    return 'Quando tudo estiver pronto, envie o projeto para aprovacao do cliente.';
+    return 'Quando tudo estiver pronto, envie o projeto para aprovação do cliente.';
   }, [allTasksDone, isFreelancer, progress, roleLoading]);
 
   const clientApprovalHint = useMemo(() => {
@@ -129,14 +129,14 @@ export default function ProjectProgressScreen() {
     }
 
     if (progress.projectStatus !== 'WAITING_CLIENT_APPROVAL') {
-      return 'O freelancer ainda nao solicitou sua aprovacao final.';
+      return 'O freelancer ainda não solicitou sua aprovação final.';
     }
 
     if (!allTasksDone) {
       return 'Ainda existem tarefas pendentes neste projeto.';
     }
 
-    return 'Revise o progresso abaixo e aprove a conclusao quando estiver tudo certo.';
+    return 'Revise o progresso abaixo e aprove a conclusão quando estiver tudo certo.';
   }, [allTasksDone, isClient, progress, roleLoading]);
 
   async function handleRequestApproval() {
@@ -160,12 +160,12 @@ export default function ProjectProgressScreen() {
           : current
       );
 
-      Alert.alert('Sucesso', 'Projeto enviado para aprovacao do cliente.');
+      Alert.alert('Sucesso', 'Projeto enviado para aprovação do cliente.');
     } catch (requestError: any) {
       Alert.alert(
-        'Erro ao solicitar aprovacao',
+        'Erro ao solicitar aprovação',
         requestError?.response?.data?.message ||
-          'Nao foi possivel enviar o projeto para aprovacao.'
+          'Não foi possível enviar o projeto para aprovação.'
       );
     } finally {
       setRequestingApproval(false);
@@ -198,7 +198,7 @@ export default function ProjectProgressScreen() {
       Alert.alert(
         'Erro ao aprovar projeto',
         approveError?.response?.data?.message ||
-          'Nao foi possivel aprovar a conclusao do projeto.'
+          'Não foi possível aprovar a conclusão do projeto.'
       );
     } finally {
       setApprovingProject(false);
@@ -212,7 +212,7 @@ export default function ProjectProgressScreen() {
 
     if (Platform.OS === 'web' && typeof globalThis.confirm === 'function') {
       const confirmed = globalThis.confirm(
-        'Tem certeza que deseja aprovar a conclusao deste projeto?'
+        'Tem certeza que deseja aprovar a conclusão deste projeto?'
       );
 
       if (confirmed) {
@@ -223,8 +223,8 @@ export default function ProjectProgressScreen() {
     }
 
     Alert.alert(
-      'Aprovar conclusao',
-      'Tem certeza que deseja aprovar a conclusao deste projeto?',
+      'Aprovar conclusão',
+      'Tem certeza que deseja aprovar a conclusão deste projeto?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -258,8 +258,8 @@ export default function ProjectProgressScreen() {
     return (
       <View style={styles.container}>
         <ScreenState
-          title="Progresso indisponivel"
-          description="Nao foi possivel encontrar indicadores para este projeto."
+          title="Progresso indisponível"
+          description="Não foi possível encontrar indicadores para este projeto."
         />
       </View>
     );
@@ -279,17 +279,17 @@ export default function ProjectProgressScreen() {
             <Text style={styles.eyebrow}>PAINEL DO PROJETO</Text>
             <Text style={styles.title}>{progress.projectName || 'Projeto selecionado'}</Text>
             <Text style={styles.subtitle}>
-              {progress.projectDescription || 'Sem descricao cadastrada para este projeto.'}
+              {progress.projectDescription || 'Sem descrição cadastrada para este projeto.'}
             </Text>
           </View>
 
-          <ProgressCircle value={progress.progressPercentage} label="Concluido" size={112} />
+          <ProgressCircle value={progress.progressPercentage} label="Concluído" size={112} />
         </View>
 
         <View style={styles.heroMetaRow}>
           <ProjectStatusBadge status={progress.projectStatus} />
           <Text style={styles.heroMetaText}>
-            Freelancer: {progress.freelancer?.name || 'Nao informado'}
+            Freelancer: {progress.freelancer?.name || 'Não informado'}
           </Text>
         </View>
 
@@ -305,12 +305,12 @@ export default function ProjectProgressScreen() {
         ) : null}
 
         <Text style={styles.heroSummary}>
-          {progress.progressPercentage}% concluido no total do projeto.
+          {progress.progressPercentage}% concluído no total do projeto.
         </Text>
 
         {progress.completedAt ? (
           <Text style={styles.completedAtText}>
-            Conclusao aprovada em {formatDate(progress.completedAt)}.
+            Conclusão aprovada em {formatDate(progress.completedAt)}.
           </Text>
         ) : null}
       </View>
@@ -329,7 +329,7 @@ export default function ProjectProgressScreen() {
           accentColor="#111827"
         />
         <MetricCard
-          label="Concluidas"
+          label="Concluídas"
           value={progress.doneTasks}
           helper="Entregas finalizadas"
           accentColor="#16A34A"
@@ -337,19 +337,19 @@ export default function ProjectProgressScreen() {
         <MetricCard
           label="Em andamento"
           value={progress.inProgressTasks}
-          helper="Execucao ativa"
+          helper="Execução ativa"
           accentColor="#2563EB"
         />
         <MetricCard
           label="Pendentes"
           value={progress.todoTasks}
-          helper="Ainda nao iniciadas"
+          helper="Ainda não iniciadas"
           accentColor="#7C3AED"
         />
         <MetricCard
           label="Bloqueadas"
           value={progress.blockedTasks}
-          helper="Precisam de atencao"
+          helper="Precisam de atenção"
           accentColor="#DC2626"
         />
       </View>
@@ -358,18 +358,18 @@ export default function ProjectProgressScreen() {
         <View style={styles.emptyWrapper}>
           <ScreenState
             title="Nenhuma tarefa cadastrada"
-            description="Assim que o freelancer adicionar tarefas a este projeto, o progresso detalhado aparecera aqui."
+            description="Assim que o freelancer adicionar tarefas a este projeto, o progresso detalhado aparecerá aqui."
           />
         </View>
       ) : null}
 
       {!roleLoading && (isFreelancer || isClient) ? (
         <View style={styles.approvalCard}>
-          <Text style={styles.sectionTitle}>Fluxo de aprovacao</Text>
+          <Text style={styles.sectionTitle}>Fluxo de aprovação</Text>
           <Text style={styles.sectionSubtitle}>
             {isFreelancer
-              ? 'Envie o projeto para aprovacao quando todas as tarefas estiverem concluidas.'
-              : 'Aprove a conclusao final somente quando o projeto estiver pronto para entrega.'}
+              ? 'Envie o projeto para aprovação quando todas as tarefas estiverem concluídas.'
+              : 'Aprove a conclusão final somente quando o projeto estiver pronto para entrega.'}
           </Text>
 
           {isFreelancer ? (
@@ -379,8 +379,8 @@ export default function ProjectProgressScreen() {
                 <Button
                   title={
                     requestingApproval
-                      ? 'Enviando para aprovacao...'
-                      : 'Solicitar aprovacao do cliente'
+                      ? 'Enviando para aprovação...'
+                      : 'Solicitar aprovação do cliente'
                   }
                   onPress={handleRequestApproval}
                   disabled={!canRequestApproval || requestingApproval || approvingProject}
@@ -396,8 +396,8 @@ export default function ProjectProgressScreen() {
                 <Button
                   title={
                     approvingProject
-                      ? 'Aprovando conclusao...'
-                      : 'Aprovar conclusao do projeto'
+                      ? 'Aprovando conclusão...'
+                      : 'Aprovar conclusão do projeto'
                   }
                   onPress={handleApproveProject}
                   disabled={approvingProject || requestingApproval}
@@ -415,7 +415,7 @@ export default function ProjectProgressScreen() {
         </Text>
         <Text style={styles.approvalHint}>
           {progress.client
-            ? 'Use o chat para manter o historico da comunicacao entre freelancer e cliente.'
+            ? 'Use o chat para manter o histórico da comunicação entre freelancer e cliente.'
             : 'Vincule um cliente ao projeto para liberar a conversa.'}
         </Text>
         <Button
@@ -447,7 +447,7 @@ export default function ProjectProgressScreen() {
         <View style={styles.emptyWrapper}>
           <ScreenState
             title="Nenhuma sprint encontrada"
-            description="Assim que as sprints forem criadas, o projeto exibira o andamento detalhado aqui."
+            description="Assim que as sprints forem criadas, o projeto exibirá o andamento detalhado aqui."
           />
         </View>
       ) : (

@@ -85,7 +85,7 @@ export default function Tasks() {
   const loadTasks = useCallback(
     async (showLoader = true) => {
       if (!projectId || !sprintId) {
-        setError('Projeto ou sprint invalidos para carregar as tarefas.');
+        setError('Projeto ou sprint inválidos para carregar as tarefas.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -116,7 +116,7 @@ export default function Tasks() {
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel carregar as tarefas da sprint.'
+            'Não foi possível carregar as tarefas da sprint.'
         );
       } finally {
         setLoading(false);
@@ -169,7 +169,7 @@ export default function Tasks() {
       const blockedDependencies = getIncompleteTaskDependencies(currentTask, tasks);
 
       Alert.alert(
-        'Dependencias pendentes',
+        'Dependências pendentes',
         `Conclua primeiro: ${blockedDependencies
           .map((dependency) => dependency.title)
           .join(', ')}.`
@@ -191,13 +191,13 @@ export default function Tasks() {
       );
 
       if (status === 'DONE') {
-        Alert.alert('Sucesso', 'Tarefa concluida com sucesso.');
+        Alert.alert('Sucesso', 'Tarefa concluída com sucesso.');
       }
     } catch (statusError: any) {
       Alert.alert(
         'Erro ao atualizar status',
         statusError?.response?.data?.message ||
-          'Nao foi possivel atualizar o status da tarefa.'
+          'Não foi possível atualizar o status da tarefa.'
       );
     } finally {
       setActionTaskId(null);
@@ -265,7 +265,7 @@ export default function Tasks() {
                   ) : null}
                 </View>
 
-                <ProgressCircle value={completionPercentage} label="Conclusao" size={96} />
+                <ProgressCircle value={completionPercentage} label="Conclusão" size={96} />
               </View>
 
               {!roleLoading && isFreelancer ? (
@@ -285,7 +285,7 @@ export default function Tasks() {
                 accentColor={theme.colors.primary}
               />
               <MetricCard
-                label="Concluidas"
+                label="Concluídas"
                 value={summary.completed}
                 helper="Itens entregues"
                 accentColor="#16A34A"
@@ -293,7 +293,7 @@ export default function Tasks() {
               <MetricCard
                 label="Em andamento"
                 value={summary.inProgress}
-                helper="Execucao ativa"
+                helper="Execução ativa"
                 accentColor="#2563EB"
               />
               <MetricCard
@@ -333,7 +333,7 @@ export default function Tasks() {
               }
               description={
                 selectedFilter === 'ALL'
-                  ? 'Cadastre a primeira tarefa desta sprint para comecar a acompanhar a execucao.'
+                  ? 'Cadastre a primeira tarefa desta sprint para começar a acompanhar a execução.'
                   : 'Tente trocar o filtro para visualizar mais tarefas.'
               }
             />

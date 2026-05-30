@@ -46,7 +46,7 @@ export function SprintProgressCard({
       </View>
 
       <View style={styles.metricsRow}>
-        <Text style={styles.metricText}>{sprint.doneTasks} concluidas</Text>
+        <Text style={styles.metricText}>{sprint.doneTasks} concluídas</Text>
         <Text style={styles.metricText}>{sprint.totalTasks} tarefas</Text>
       </View>
 

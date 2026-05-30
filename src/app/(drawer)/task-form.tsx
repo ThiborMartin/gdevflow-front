@@ -67,14 +67,14 @@ function mapTaskApiMessage(message?: string) {
   if (normalizedMessage.includes(taskDueDateBeforeCreationKey)) {
     return {
       field: 'dueDate' as const,
-      message: 'A data limite nao pode ser anterior a data de criacao da tarefa.',
+      message: 'A data limite não pode ser anterior à data de criação da tarefa.',
     };
   }
 
   if (normalizedMessage.includes(taskDueDateAfterSprintEndKey)) {
     return {
       field: 'dueDate' as const,
-      message: 'A data limite nao pode ser posterior a data final da sprint.',
+      message: 'A data limite não pode ser posterior à data final da sprint.',
     };
   }
 
@@ -255,7 +255,7 @@ export default function TaskForm() {
       } catch (loadError: any) {
         setFormError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel carregar os dados da tarefa.'
+            'Não foi possível carregar os dados da tarefa.'
         );
       } finally {
         setLoading(false);
@@ -286,15 +286,15 @@ export default function TaskForm() {
     const trimmedDescription = description.trim();
 
     if (!trimmedTitle) {
-      nextErrors.title = 'Informe o titulo da tarefa.';
+      nextErrors.title = 'Informe o título da tarefa.';
     } else if (trimmedTitle.length < 3) {
-      nextErrors.title = 'O titulo deve ter pelo menos 3 caracteres.';
+      nextErrors.title = 'O título deve ter pelo menos 3 caracteres.';
     }
 
     if (!trimmedDescription) {
-      nextErrors.description = 'Informe a descricao da tarefa.';
+      nextErrors.description = 'Informe a descrição da tarefa.';
     } else if (trimmedDescription.length < 8) {
-      nextErrors.description = 'A descricao deve ter pelo menos 8 caracteres.';
+      nextErrors.description = 'A descrição deve ter pelo menos 8 caracteres.';
     }
 
     if (!dueDate) {
@@ -306,11 +306,11 @@ export default function TaskForm() {
     }
 
     if (!projectId) {
-      nextErrors.project = 'Projeto nao identificado.';
+      nextErrors.project = 'Projeto não identificado.';
     }
 
     if (!sprintId) {
-      nextErrors.sprint = 'Sprint nao identificada.';
+      nextErrors.sprint = 'Sprint não identificada.';
     }
 
     if (normalizeTaskStatus(status) === 'DONE' && !allDependenciesResolved) {
@@ -418,8 +418,8 @@ export default function TaskForm() {
       const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
         saveError,
         isEditMode
-          ? 'Nao foi possivel atualizar a tarefa.'
-          : 'Nao foi possivel salvar a tarefa.'
+          ? 'Não foi possível atualizar a tarefa.'
+          : 'Não foi possível salvar a tarefa.'
       );
 
       setErrors((currentErrors) => ({
@@ -458,15 +458,15 @@ export default function TaskForm() {
       Alert.alert(
         'Sucesso',
         normalizedStatus === 'DONE'
-          ? 'Tarefa concluida com sucesso.'
+          ? 'Tarefa concluída com sucesso.'
           : 'Status atualizado com sucesso.'
       );
     } catch (statusError: any) {
       const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
         statusError,
         normalizedStatus === 'DONE'
-          ? 'Nao foi possivel concluir a tarefa.'
-          : 'Nao foi possivel atualizar o status da tarefa.'
+          ? 'Não foi possível concluir a tarefa.'
+          : 'Não foi possível atualizar o status da tarefa.'
       );
 
       setErrors((currentErrors) => ({
@@ -495,11 +495,11 @@ export default function TaskForm() {
       setFormError('');
       const updatedTask = await completeTask(taskId);
       setStatus(updatedTask.status || 'DONE');
-      Alert.alert('Sucesso', 'Tarefa marcada como concluida.');
+      Alert.alert('Sucesso', 'Tarefa marcada como concluída.');
     } catch (completeError: any) {
       const { fieldErrors, formError: nextFormError } = getTaskApiErrorState(
         completeError,
-        'Nao foi possivel concluir a tarefa.'
+        'Não foi possível concluir a tarefa.'
       );
 
       setErrors((currentErrors) => ({
@@ -517,7 +517,7 @@ export default function TaskForm() {
   if (roleLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ScreenState loading title="Carregando permissao..." />
+        <ScreenState loading title="Carregando permissão..." />
       </View>
     );
   }
@@ -545,8 +545,8 @@ export default function TaskForm() {
     return (
       <View style={styles.blockedContainer}>
         <ScreenState
-          title="Contexto invalido"
-          description="Nao foi possivel identificar o projeto e a sprint desta tarefa."
+          title="Contexto inválido"
+          description="Não foi possível identificar o projeto e a sprint desta tarefa."
         />
       </View>
     );
@@ -566,7 +566,7 @@ export default function TaskForm() {
           {isEditMode ? 'Editar tarefa' : 'Nova tarefa'}
         </Text>
         <Text style={styles.subtitle}>
-          Organize o backlog com data limite, dependencias e status da entrega.
+          Organize o backlog com data limite, dependências e status da entrega.
         </Text>
 
         <View style={styles.card}>
@@ -584,7 +584,7 @@ export default function TaskForm() {
           </View>
           {errors.sprint ? <Text style={styles.errorText}>{errors.sprint}</Text> : null}
 
-          <Text style={styles.label}>Titulo</Text>
+          <Text style={styles.label}>Título</Text>
           <Input
             placeholder="Ex: Implementar tela mobile da sprint"
             value={title}
@@ -595,7 +595,7 @@ export default function TaskForm() {
             error={errors.title}
           />
 
-          <Text style={styles.label}>Descricao</Text>
+          <Text style={styles.label}>Descrição</Text>
           <Input
             placeholder="Resuma o que precisa ser feito"
             value={description}
@@ -638,14 +638,14 @@ export default function TaskForm() {
                     style={styles.closePickerButton}
                     onPress={() => setActivePicker(null)}
                   >
-                    <Text style={styles.closePickerText}>Fechar calendario</Text>
+                    <Text style={styles.closePickerText}>Fechar calendário</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
             ) : null}
           </View>
 
-          <Text style={styles.label}>Responsavel (opcional)</Text>
+          <Text style={styles.label}>Responsável (opcional)</Text>
           <Input
             placeholder="Ex: Gabriel"
             value={responsibleName}
@@ -655,15 +655,15 @@ export default function TaskForm() {
             }}
           />
 
-          <Text style={styles.label}>Dependencias da tarefa</Text>
+          <Text style={styles.label}>Dependências da tarefa</Text>
           <Text style={styles.helperText}>
-            Esta tarefa so podera ser concluida depois que todas as dependencias estiverem concluidas.
+            Esta tarefa só poderá ser concluída depois que todas as dependências estiverem concluídas.
           </Text>
 
           {dependencyCandidates.length === 0 ? (
             <View style={styles.dependenciesEmptyState}>
               <Text style={styles.dependenciesEmptyText}>
-                Nenhuma outra tarefa disponivel nesta sprint para vincular como dependencia.
+                Nenhuma outra tarefa disponível nesta sprint para vincular como dependência.
               </Text>
             </View>
           ) : (
@@ -695,7 +695,7 @@ export default function TaskForm() {
                     </View>
 
                     <Text style={styles.dependencyToggleText}>
-                      {selected ? 'Selecionada como dependencia' : 'Toque para marcar como dependencia'}
+                      {selected ? 'Selecionada como dependência' : 'Toque para marcar como dependência'}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -705,7 +705,7 @@ export default function TaskForm() {
 
           {selectedDependencyTasks.length > 0 ? (
             <View style={styles.selectedDependenciesCard}>
-              <Text style={styles.selectedDependenciesTitle}>Dependencias selecionadas</Text>
+              <Text style={styles.selectedDependenciesTitle}>Dependências selecionadas</Text>
               {resolveTaskDependencies(selectedTaskPreview, dependencyCandidates).map(
                 (dependency) => (
                   <Text key={dependency.id} style={styles.selectedDependencyItem}>
@@ -718,7 +718,7 @@ export default function TaskForm() {
 
           {!allDependenciesResolved ? (
             <Text style={styles.blockedNotice}>
-              Conclusao bloqueada ate finalizar: {incompleteDependencies
+              Conclusão bloqueada até finalizar: {incompleteDependencies
                 .map((dependency) => dependency.title)
                 .join(', ')}.
             </Text>
@@ -778,7 +778,7 @@ export default function TaskForm() {
 
           {isEditMode && normalizeTaskStatus(status) !== 'DONE' ? (
             <Button
-              title={completing ? 'Concluindo...' : 'Marcar como concluida'}
+              title={completing ? 'Concluindo...' : 'Marcar como concluída'}
               variant="secondary"
               onPress={handleComplete}
               disabled={saving || statusSaving || completing}

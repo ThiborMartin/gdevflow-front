@@ -62,7 +62,7 @@ export default function ProjectChatScreen() {
   const loadChat = useCallback(
     async (showLoader = true) => {
       if (!projectId) {
-        setError('Projeto invalido para carregar o chat.');
+        setError('Projeto inválido para carregar o chat.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -85,7 +85,7 @@ export default function ProjectChatScreen() {
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel carregar a conversa deste projeto.'
+            'Não foi possível carregar a conversa deste projeto.'
         );
       } finally {
         setLoading(false);
@@ -133,7 +133,7 @@ export default function ProjectChatScreen() {
     } catch (sendError: any) {
       setError(
         sendError?.response?.data?.message ||
-          'Nao foi possivel enviar sua mensagem agora.'
+          'Não foi possível enviar sua mensagem agora.'
       );
     } finally {
       setSending(false);
@@ -163,8 +163,8 @@ export default function ProjectChatScreen() {
     return (
       <View style={styles.stateContainer}>
         <ScreenState
-          title="Chat indisponivel"
-          description="Nao foi possivel identificar o projeto desta conversa."
+          title="Chat indisponível"
+          description="Não foi possível identificar o projeto desta conversa."
         />
       </View>
     );
@@ -210,7 +210,7 @@ export default function ProjectChatScreen() {
               description={
                 chatEnabled
                   ? 'Envie a primeira mensagem para iniciar a conversa deste projeto.'
-                  : 'O chat ficara disponivel assim que um cliente for vinculado ao projeto.'
+                  : 'O chat ficará disponível assim que um cliente for vinculado ao projeto.'
               }
             />
           ) : (
@@ -232,7 +232,7 @@ export default function ProjectChatScreen() {
                     ]}
                   >
                     <Text style={styles.messageAuthor}>
-                      {isOwnMessage ? 'Voce' : message.senderName || 'Participante'}
+                      {isOwnMessage ? 'Você' : message.senderName || 'Participante'}
                     </Text>
                     <Text
                       style={[
@@ -260,7 +260,7 @@ export default function ProjectChatScreen() {
         <View style={styles.composerCard}>
           <Text style={styles.composerTitle}>Nova mensagem</Text>
           <Text style={styles.composerSubtitle}>
-            Use este espaco para alinhar entregas, feedbacks e proximos passos.
+            Use este espaço para alinhar entregas, feedbacks e próximos passos.
           </Text>
 
           <Input

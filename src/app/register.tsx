@@ -65,7 +65,7 @@ export default function Register() {
     if (!trimmedEmail) {
       nextErrors.email = 'Informe seu email.';
     } else if (!isValidEmail(trimmedEmail)) {
-      nextErrors.email = 'Informe um email valido.';
+      nextErrors.email = 'Informe um email válido.';
     }
 
     if (!password) {
@@ -77,7 +77,7 @@ export default function Register() {
     if (!confirmPassword) {
       nextErrors.confirmPassword = 'Confirme sua senha.';
     } else if (password && confirmPassword !== password) {
-      nextErrors.confirmPassword = 'As senhas nao coincidem.';
+      nextErrors.confirmPassword = 'As senhas não coincidem.';
     }
 
     if (!role) {
@@ -117,7 +117,7 @@ export default function Register() {
 
       if (error?.response?.status === 409) {
         setErrors({
-          email: apiMessage || 'Este email ja esta em uso.',
+          email: apiMessage || 'Este email já está em uso.',
         });
         return;
       }
@@ -128,13 +128,13 @@ export default function Register() {
           email: apiErrors.email,
           password: apiErrors.password,
           role: apiErrors.role,
-          form: apiMessage && apiMessage !== 'Payload invalido' ? apiMessage : undefined,
+          form: apiMessage && apiMessage !== 'Payload inválido' ? apiMessage : undefined,
         });
         return;
       }
 
       setErrors({
-        form: apiMessage || 'Nao foi possivel criar a conta. Verifique os dados e tente novamente.',
+        form: apiMessage || 'Não foi possível criar a conta. Verifique os dados e tente novamente.',
       });
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ export default function Register() {
           {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
 
           <View style={styles.roleSection}>
-            <Text style={styles.roleLabel}>Como voce pretende usar o GDevFlow?</Text>
+            <Text style={styles.roleLabel}>Como você pretende usar o GDevFlow?</Text>
             <Text style={styles.roleHint}>
               Freelancer para gerenciar projetos ou Cliente para acompanhar entregas.
             </Text>

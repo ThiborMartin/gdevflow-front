@@ -22,7 +22,7 @@ export function ClientProjectCard({ project, onPress }: ClientProjectCardProps) 
         <View style={styles.titleBlock}>
           <Text style={styles.name}>{project.name}</Text>
           <Text style={styles.description} numberOfLines={2}>
-            {project.description || 'Sem descricao cadastrada.'}
+            {project.description || 'Sem descrição cadastrada.'}
           </Text>
         </View>
 
@@ -30,7 +30,7 @@ export function ClientProjectCard({ project, onPress }: ClientProjectCardProps) 
       </View>
 
       <View style={styles.metaRow}>
-        <Text style={styles.metaLabel}>Freelancer responsavel</Text>
+        <Text style={styles.metaLabel}>Freelancer responsável</Text>
         <Text style={styles.metaValue}>{project.owner.name}</Text>
       </View>
 
@@ -49,7 +49,7 @@ export function ClientProjectCard({ project, onPress }: ClientProjectCardProps) 
           <Text style={styles.metricValue}>
             {project.doneTasks}/{project.totalTasks}
           </Text>
-          <Text style={styles.metricLabel}>Tarefas concluidas</Text>
+          <Text style={styles.metricLabel}>Tarefas concluídas</Text>
         </View>
 
         <View style={styles.metricCard}>
@@ -68,7 +68,7 @@ export function ClientProjectCard({ project, onPress }: ClientProjectCardProps) 
       </View>
 
       <Text style={styles.progressSummary}>
-        {project.doneTasks} de {project.totalTasks} tarefas concluidas
+        {project.doneTasks} de {project.totalTasks} tarefas concluídas
       </Text>
 
       <TouchableOpacity style={styles.actionButton} activeOpacity={0.88} onPress={onPress}>

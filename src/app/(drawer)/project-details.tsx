@@ -140,7 +140,7 @@ export default function ProjectDetails() {
   const loadProjectData = useCallback(
     async (showLoader = true) => {
       if (!projectId) {
-        setError('Projeto invalido para carregar os detalhes.');
+        setError('Projeto inválido para carregar os detalhes.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -172,7 +172,7 @@ export default function ProjectDetails() {
       } catch (loadError: any) {
         setError(
           loadError?.response?.data?.message ||
-            'Nao foi possivel carregar os dados do projeto.'
+            'Não foi possível carregar os dados do projeto.'
         );
       } finally {
         setLoading(false);
@@ -211,7 +211,7 @@ export default function ProjectDetails() {
     } catch (assignError: any) {
       setClientAssignmentError(
         assignError?.response?.data?.message ||
-          'Nao foi possivel vincular o cliente ao projeto.'
+          'Não foi possível vincular o cliente ao projeto.'
       );
     } finally {
       setAssigningClient(false);
@@ -266,7 +266,7 @@ export default function ProjectDetails() {
     return (
       <View style={styles.container}>
         <ScreenState
-          title="Projeto nao encontrado"
+          title="Projeto não encontrado"
           description="Volte para a listagem e tente abrir o projeto novamente."
         />
       </View>
@@ -299,9 +299,9 @@ export default function ProjectDetails() {
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryTextBlock}>
-            <Text style={styles.sectionLabel}>Visao geral</Text>
+            <Text style={styles.sectionLabel}>Visão geral</Text>
             <Text style={styles.description}>
-              {project.description || 'Sem descricao cadastrada.'}
+              {project.description || 'Sem descrição cadastrada.'}
             </Text>
             <Text style={styles.currentSprintLabel}>Sprint em foco</Text>
             <Text style={styles.currentSprintValue}>{dashboard.currentSprint}</Text>
@@ -312,7 +312,7 @@ export default function ProjectDetails() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Indicadores rapidos</Text>
+        <Text style={styles.sectionTitle}>Indicadores rápidos</Text>
         <Text style={styles.sectionSubtitle}>
           Resumo operacional do backlog e do andamento atual.
         </Text>
@@ -322,7 +322,7 @@ export default function ProjectDetails() {
         <MetricCard
           label="Total de sprints"
           value={dashboard.totalSprints}
-          helper={`${dashboard.doneSprints} concluidas`}
+          helper={`${dashboard.doneSprints} concluídas`}
           accentColor={theme.colors.primary}
         />
         <MetricCard
@@ -346,7 +346,7 @@ export default function ProjectDetails() {
       </View>
 
       <View style={styles.actionsCard}>
-        <Text style={styles.sectionTitle}>Acoes do projeto</Text>
+        <Text style={styles.sectionTitle}>Ações do projeto</Text>
         <Text style={styles.sectionSubtitle}>
           Abra o dashboard de progresso e acompanhe as sprints do projeto.
         </Text>
@@ -390,7 +390,7 @@ export default function ProjectDetails() {
 
         {projectLocked && !roleLoading && isFreelancer ? (
           <Text style={styles.closedNotice}>
-            Este projeto nao esta mais em andamento. Novas sprints ficam bloqueadas ate a proxima etapa do fluxo.
+            Este projeto não está mais em andamento. Novas sprints ficam bloqueadas até a próxima etapa do fluxo.
           </Text>
         ) : null}
 
@@ -407,14 +407,14 @@ export default function ProjectDetails() {
         {projectHasClient ? (
           <>
             <Text style={styles.sectionSubtitle}>
-              Este projeto ja possui um cliente vinculado.
+              Este projeto já possui um cliente vinculado.
             </Text>
 
             <View style={styles.clientSummaryCard}>
               <Text style={styles.clientSummaryLabel}>Cliente vinculado</Text>
               <Text style={styles.clientSummaryName}>{project.client?.name}</Text>
               <Text style={styles.clientSummaryEmail}>
-                {project.client?.email || 'Email nao disponivel'}
+                {project.client?.email || 'E-mail não disponível'}
               </Text>
             </View>
           </>
@@ -449,7 +449,7 @@ export default function ProjectDetails() {
           </>
         ) : (
           <Text style={styles.sectionSubtitle}>
-            Ainda nao ha cliente vinculado a este projeto.
+            Ainda não há cliente vinculado a este projeto.
           </Text>
         )}
       </View>
@@ -489,7 +489,7 @@ export default function ProjectDetails() {
           <View style={styles.emptyStateWrapper}>
             <ScreenState
               title="Nenhuma sprint cadastrada"
-              description="Crie a primeira sprint para organizar a execucao deste projeto."
+              description="Crie a primeira sprint para organizar a execução deste projeto."
             />
           </View>
         }
@@ -506,7 +506,7 @@ export default function ProjectDetails() {
             }
             footerSecondaryText={
               typeof item.completedTasks === 'number'
-                ? `${item.completedTasks} concluidas`
+                ? `${item.completedTasks} concluídas`
                 : 'Progresso via status da sprint'
             }
             onPress={() => openSprintTasks(item)}

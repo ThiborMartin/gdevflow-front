@@ -43,7 +43,7 @@ export function ClientSearchBox({ onSelectClient }: ClientSearchBoxProps) {
     } catch (searchError: any) {
       setResults([]);
       setError(
-        searchError?.response?.data?.message || 'Nao foi possivel buscar clientes agora.'
+        searchError?.response?.data?.message || 'Não foi possível buscar clientes agora.'
       );
     } finally {
       setLoading(false);

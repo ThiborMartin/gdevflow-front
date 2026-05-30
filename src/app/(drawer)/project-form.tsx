@@ -49,7 +49,7 @@ export default function ProjectForm() {
         setDescription(project.description || '');
       } catch (error: any) {
         setErrors({
-          form: error?.response?.data?.message || 'Nao foi possivel carregar o projeto.',
+          form: error?.response?.data?.message || 'Não foi possível carregar o projeto.',
         });
       } finally {
         setLoading(false);
@@ -71,13 +71,13 @@ export default function ProjectForm() {
     }
 
     if (!trimmedDescription) {
-      nextErrors.description = 'Informe a descricao do projeto.';
+      nextErrors.description = 'Informe a descrição do projeto.';
     } else if (trimmedDescription.length < 10) {
-      nextErrors.description = 'A descricao deve ter pelo menos 10 caracteres.';
+      nextErrors.description = 'A descrição deve ter pelo menos 10 caracteres.';
     }
 
     if (nextErrors.name || nextErrors.description) {
-      nextErrors.form = 'Preencha corretamente os campos obrigatorios.';
+      nextErrors.form = 'Preencha corretamente os campos obrigatórios.';
     }
 
     setErrors(nextErrors);
@@ -118,7 +118,7 @@ export default function ProjectForm() {
       setErrors({
         form:
           error?.response?.data?.message ||
-          'Nao foi possivel salvar o projeto. Verifique os dados e tente novamente.',
+          'Não foi possível salvar o projeto. Verifique os dados e tente novamente.',
       });
     } finally {
       setSaving(false);
@@ -147,7 +147,7 @@ export default function ProjectForm() {
           {isEditMode ? 'Editar projeto' : 'Novo projeto'}
         </Text>
         <Text style={styles.subtitle}>
-          Preencha as informacoes principais para organizar seu trabalho.
+          Preencha as informações principais para organizar seu trabalho.
         </Text>
 
         <View style={styles.card}>
@@ -164,7 +164,7 @@ export default function ProjectForm() {
             error={errors.name}
           />
 
-          <Text style={styles.label}>Descricao</Text>
+          <Text style={styles.label}>Descrição</Text>
           <Input
             placeholder="Descreva brevemente o escopo do projeto"
             value={description}

@@ -7,14 +7,14 @@ export const TASK_FILTERS: { label: string; value: TaskFilterValue }[] = [
   { label: 'Todas', value: 'ALL' },
   { label: 'A fazer', value: 'TODO' },
   { label: 'Em andamento', value: 'IN_PROGRESS' },
-  { label: 'Concluidas', value: 'DONE' },
+  { label: 'Concluídas', value: 'DONE' },
   { label: 'Bloqueadas', value: 'BLOCKED' },
 ];
 
 export const TASK_STATUS_OPTIONS: TaskStatusOption[] = [
   { label: 'A fazer', value: 'TODO' },
   { label: 'Em andamento', value: 'IN_PROGRESS' },
-  { label: 'Concluida', value: 'DONE' },
+  { label: 'Concluída', value: 'DONE' },
   { label: 'Bloqueada', value: 'BLOCKED' },
 ];
 
